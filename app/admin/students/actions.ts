@@ -27,8 +27,7 @@ export async function createStudent(data: any) {
                 name: data.name,
                 batch: data.batch,
                 phone: data.phone,
-                // Default birthDate for now
-                birthDate: new Date("2000-01-01")
+                birthDate: new Date(data.birthDate)
             }
         })
         revalidatePath('/admin/students')
@@ -46,7 +45,8 @@ export async function updateStudent(id: string, data: any) {
             data: {
                 name: data.name,
                 batch: data.batch,
-                phone: data.phone
+                phone: data.phone,
+                birthDate: new Date(data.birthDate)
             }
         })
         revalidatePath('/admin/students')
@@ -76,7 +76,7 @@ export async function bulkCreateStudents(students: any[]) {
             name: s.name,
             batch: Number(s.batch),
             phone: s.phone || "",
-            birthDate: new Date("2000-01-01")
+            birthDate: s.birthDate ? new Date(s.birthDate) : new Date("2000-01-01")
         }))
 
         await prisma.student.createMany({

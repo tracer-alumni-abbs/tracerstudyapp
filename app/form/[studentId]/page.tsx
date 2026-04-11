@@ -113,7 +113,7 @@ export default function SurveyForm({ params }: { params: Promise<{ studentId: st
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t.form.step1.phone}</label>
                                         <input
-                                            value={profile.phone}
+                                            value={profile.phone || ""}
                                             onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                                             className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700"
                                         />
@@ -121,7 +121,7 @@ export default function SurveyForm({ params }: { params: Promise<{ studentId: st
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t.form.step1.email}</label>
                                         <input
-                                            value={profile.email}
+                                            value={profile.email || ""}
                                             onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                                             className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 focus:border-blue-500 focus:ring-blue-500 dark:bg-slate-800 dark:border-slate-700"
                                         />

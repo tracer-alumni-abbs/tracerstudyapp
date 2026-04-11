@@ -44,7 +44,7 @@ export default function StudentsPage() {
 
     // State for Form
     const [editingId, setEditingId] = useState<string | null>(null)
-    const [formData, setFormData] = useState({ name: "", batch: new Date().getFullYear(), phone: "" })
+    const [formData, setFormData] = useState({ name: "", batch: new Date().getFullYear(), phone: "", birthDate: "" })
 
     const batches = ["All", ...Array.from(new Set(students.map(s => s.batch))).sort()]
 
@@ -57,14 +57,15 @@ export default function StudentsPage() {
     // Open Modal for Create
     const openAddModal = () => {
         setEditingId(null)
-        setFormData({ name: "", batch: new Date().getFullYear(), phone: "" })
+        setFormData({ name: "", batch: new Date().getFullYear(), phone: "", birthDate: "" })
         setIsModalOpen(true)
     }
 
     // Open Modal for Edit
     const openEditModal = (student: any) => {
         setEditingId(student.id)
-        setFormData({ name: student.name, batch: student.batch, phone: student.phone })
+        const formatDOB = student.birthDate ? new Date(student.birthDate).toISOString().split('T')[0] : ""
+        setFormData({ name: student.name, batch: student.batch, phone: student.phone, birthDate: formatDOB })
         setIsModalOpen(true)
     }
 
@@ -95,7 +96,8 @@ export default function StudentsPage() {
             return {
                 name: values[0]?.trim() || "Unknown",
                 batch: Number(values[1]?.trim()) || new Date().getFullYear(),
-                phone: values[2]?.trim() || ""
+                phone: values[2]?.trim() || "",
+                birthDate: values[3]?.trim() || "2000-01-01"
             }
         }).filter(row => row.name !== "Unknown")
         setBulkDataPreview(dataRows)
@@ -112,7 +114,7 @@ export default function StudentsPage() {
     }
 
     const handleDownloadTemplate = () => {
-        const content = "name,batch,phone\nJohn Doe,2024,08123456789\n";
+        const content = "name,batch,phone,birthDate\nJohn Doe,2024,08123456789,2006-11-25\n";
         const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
@@ -291,9 +293,18 @@ export default function StudentsPage() {
                                     className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-800 dark:border-slate-700"
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Birth Date (YYYY-MM-DD)</label>
+                                <input
+                                    type="date"
+                                    value={formData.birthDate}
+                                    onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-slate-800 dark:border-slate-700"
+                                />
+                            </div>
                             <button
                                 onClick={handleSave}
-                                disabled={!formData.name || !formData.phone}
+                                disabled={!formData.name || !formData.phone || !formData.birthDate}
                                 className="w-full py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
                             >
                                 {editingId ? "Update Student" : "Save Student"}
@@ -332,7 +343,7 @@ export default function StudentsPage() {
                                 <AlertCircle className="h-4 w-4" /> Format Instructions
                             </h3>
                             <p className="text-sm text-blue-600 dark:text-blue-400/80 mb-3">
-                                Upload a standard CSV file with headers: <code className="bg-white dark:bg-slate-800 px-1 py-0.5 rounded border border-blue-200 dark:border-blue-800 font-mono text-xs">name, batch, phone</code>.
+                                Upload a standard CSV file with headers: <code className="bg-white dark:bg-slate-800 px-1 py-0.5 rounded border border-blue-200 dark:border-blue-800 font-mono text-xs">name, batch, phone, birthDate</code>. Format of birthDate is YYYY-MM-DD.
                             </p>
                             <button 
                                 onClick={handleDownloadTemplate}
