@@ -19,6 +19,9 @@ model Student {
   responses SurveyResponse[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([batch])
+  @@index([createdAt])
 }
 
 model JobHistory {
@@ -32,6 +35,9 @@ model JobHistory {
   isCurrent   Boolean  @default(false)
   description String?
   createdAt   DateTime @default(now())
+
+  @@index([studentId])
+  @@index([isCurrent])
 }
 
 model SurveyQuestion {
@@ -43,6 +49,8 @@ model SurveyQuestion {
   responses SurveyResponse[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([order])
 }
 
 model SurveyResponse {
@@ -53,6 +61,10 @@ model SurveyResponse {
   question   SurveyQuestion @relation(fields: [questionId], references: [id])
   answer     String
   createdAt  DateTime @default(now())
+
+  @@index([studentId])
+  @@index([questionId])
+  @@index([createdAt])
 }
 
 model Admin {
