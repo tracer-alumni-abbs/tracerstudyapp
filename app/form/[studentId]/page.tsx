@@ -4,7 +4,7 @@ import { useState, use, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, ArrowRight, Save, Plus, Trash2, CheckCircle2, AlertCircle, Loader2, Search } from "lucide-react"
 
-import { verifyIdentity, getStudent } from "./actions"
+import { verifyIdentity, getStudent, submitSurvey } from "./actions"
 import { useLanguage } from "@/components/providers/LanguageProvider"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 
@@ -72,11 +72,17 @@ export default function SurveyForm({ params }: { params: Promise<{ studentId: st
 
     const handleSubmit = async () => {
         setLoading(true)
-        // Simulate Submit
-        await new Promise(r => setTimeout(r, 1500))
+        
+        const result = await submitSurvey(resolvedParams.studentId, profile, jobs, responses)
+        
         setLoading(false)
-        showToast("Survey Submitted Successfully!", 'success')
-        setTimeout(() => router.push("/"), 2000)
+
+        if (result.success) {
+            showToast("Survey Submitted Successfully!", 'success')
+            setTimeout(() => router.push("/"), 2000)
+        } else {
+            showToast(result.message || "An error occurred during submission", 'error')
+        }
     }
 
     return (

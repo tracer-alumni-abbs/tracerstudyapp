@@ -58,3 +58,61 @@ export async function verifyIdentity(studentId: string, birthDateString: string)
         return { success: false, message: 'An error occurred during verification.' }
     }
 }
+
+export async function submitSurvey(studentId: string, profile: any, jobs: any[], responses: Record<string, any>) {
+    try {
+        // 1. Ensure the core questions exist so foreign keys don't fail
+        await prisma.surveyQuestion.upsert({
+            where: { id: "q1" },
+            update: {},
+            create: { id: "q1", question: "What is your current employment status?", type: "Multiple Choice", options: JSON.stringify(["Employed", "Self-employed", "Unemployed", "Student"]), order: 1 }
+        })
+        await prisma.surveyQuestion.upsert({
+            where: { id: "q2" },
+            update: {},
+            create: { id: "q2", question: "How relevant was your study to your current job?", type: "Rating", order: 2 }
+        })
+        await prisma.surveyQuestion.upsert({
+            where: { id: "q3" },
+            update: {},
+            create: { id: "q3", question: "Any suggestions for curriculum improvement?", type: "Text Area", order: 3 }
+        })
+
+        // 2. Update Student Profile
+        await prisma.student.update({
+            where: { id: studentId },
+            data: { email: profile.email, phone: profile.phone }
+        })
+
+        // 3. Update Job History (Clear existing and recreate to handle deletions implicitly)
+        await prisma.jobHistory.deleteMany({ where: { studentId } })
+        if (jobs && jobs.length > 0) {
+            await prisma.jobHistory.createMany({
+                data: jobs.map(j => ({
+                    studentId,
+                    company: j.company || "",
+                    position: j.position || "",
+                    startDate: j.startDate ? new Date(j.startDate) : new Date(),
+                    isCurrent: !!j.isCurrent
+                }))
+            })
+        }
+
+        // 4. Update Survey Responses
+        await prisma.surveyResponse.deleteMany({ where: { studentId } })
+        
+        const responseData = []
+        if (responses['q1']) responseData.push({ studentId, questionId: "q1", answer: String(responses['q1']) })
+        if (responses['q2']) responseData.push({ studentId, questionId: "q2", answer: String(responses['q2']) })
+        if (responses['q3']) responseData.push({ studentId, questionId: "q3", answer: String(responses['q3']) })
+
+        if (responseData.length > 0) {
+            await prisma.surveyResponse.createMany({ data: responseData })
+        }
+
+        return { success: true }
+    } catch (error) {
+        console.error("Survey submission error:", error)
+        return { success: false, message: "Failed to submit survey data." }
+    }
+}
