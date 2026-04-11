@@ -1,30 +1,40 @@
 "use client"
 
-import { useState } from "react"
-import { Plus, GripVertical, Trash2, Edit2, X, Save, Check, MinusCircle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Plus, GripVertical, Trash2, Edit2, X, Save, Check, MinusCircle, Loader2 } from "lucide-react"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
-
-const INITIAL_QUESTIONS = [
-    { id: "1", text: "What is your current employment status?", type: "Multiple Choice", options: ["Employed", "Self-employed", "Unemployed", "Continuing Study"] },
-    { id: "2", text: "How relevant was your study to your current job?", type: "Rating", options: [] },
-    { id: "3", text: "Current company name", type: "Text", options: [] },
-    { id: "4", text: "Any suggestions for curriculum improvement?", type: "Text Area", options: [] },
-]
+import { getQuestions, saveQuestion, deleteQuestionItem, updateOrder } from "./actions"
 
 export default function QuestionsPage() {
-    const [questions, setQuestions] = useState(INITIAL_QUESTIONS)
+    const [questions, setQuestions] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [tempData, setTempData] = useState<{ text: string, type: string, options: string[] } | null>(null)
     const [itemToDelete, setItemToDelete] = useState<string | null>(null)
+
+    useEffect(() => {
+        loadQuestions()
+    }, [])
+
+    const loadQuestions = async () => {
+        setLoading(true)
+        const res = await getQuestions()
+        if (res.success && res.data) {
+            setQuestions(res.data)
+        }
+        setLoading(false)
+    }
 
     const deleteQuestion = (id: string) => {
         setItemToDelete(id)
     }
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (itemToDelete) {
             setQuestions(questions.filter(q => q.id !== itemToDelete))
+            await deleteQuestionItem(itemToDelete)
             setItemToDelete(null)
+            loadQuestions()
         }
     }
 
@@ -38,11 +48,23 @@ export default function QuestionsPage() {
         setTempData(null)
     }
 
-    const saveEdit = () => {
+    const saveEdit = async () => {
         if (editingId && tempData) {
+            const currentItemIndex = questions.findIndex(q => q.id === editingId)
+            const order = currentItemIndex >= 0 ? currentItemIndex : questions.length
+            
+            // Optimistic update
             setQuestions(questions.map(q => q.id === editingId ? { ...q, ...tempData } : q))
+            
+            await saveQuestion({
+                id: editingId,
+                ...tempData,
+                order
+            })
+            
             setEditingId(null)
             setTempData(null)
+            loadQuestions()
         }
     }
 
@@ -92,11 +114,16 @@ export default function QuestionsPage() {
 
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
                 <div className="p-6 space-y-4">
-                    {questions.length === 0 && (
-                        <div className="text-center py-10 text-slate-500">No questions yet.</div>
-                    )}
-                    {questions.map((question, index) => (
-                        <div key={question.id} className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-800 group relative">
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-10 text-slate-500">
+                            <Loader2 className="h-6 w-6 animate-spin text-blue-500 mb-2" />
+                            <p>Loading questions...</p>
+                        </div>
+                    ) : questions.length === 0 ? (
+                        <div className="text-center py-10 text-slate-500">No questions found. Add one above!</div>
+                    ) : (
+                        questions.map((question, index) => (
+                            <div key={question.id} className="flex items-start gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-800 group relative">
                             <div className="cursor-move text-slate-400 hover:text-slate-600 mt-2">
                                 <GripVertical className="h-5 w-5" />
                             </div>
@@ -165,7 +192,7 @@ export default function QuestionsPage() {
                                         </div>
                                         {question.type === "Multiple Choice" && question.options && (
                                             <div className="flex flex-wrap gap-2 mt-2">
-                                                {question.options.map((opt, i) => (
+                                                {question.options.map((opt: string, i: number) => (
                                                     <span key={i} className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-700">
                                                         {opt}
                                                     </span>
@@ -214,7 +241,8 @@ export default function QuestionsPage() {
                                 )}
                             </div>
                         </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
 
