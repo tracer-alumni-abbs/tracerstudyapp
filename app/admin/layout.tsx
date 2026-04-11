@@ -69,7 +69,7 @@ export default function AdminLayout({
                             Cookies.remove("admin_session")
                             router.push("/admin/login")
                         }}
-                        className="flex w-full items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:text-red-500 hover:bg-red-50 dark:text-slate-400 dark:hover:text-red-400 dark:hover:bg-slate-800 transition-colors"
+                        className="flex w-full items-center gap-3 px-4 py-2 rounded-lg text-slate-600 hover:text-red-500 hover:bg-red-50 dark:text-slate-400 dark:hover:text-red-400 dark:hover:bg-slate-800 transition-all active:scale-95"
                     >
                         <LogOut className="h-5 w-5" />
                         <span className="font-medium">{t.admin.sidebar.logout}</span>
@@ -109,7 +109,7 @@ function NavItem({ href, icon: Icon, label, active }: { href: string, icon: any,
         <Link
             href={href}
             className={cn(
-                "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
+                "flex items-center gap-3 px-4 py-2 rounded-lg transition-all active:scale-95",
                 active
                     ? "bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400"
                     : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"

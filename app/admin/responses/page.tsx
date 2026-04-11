@@ -17,13 +17,13 @@ export default function ResponsesPage() {
         loadData()
     }, [])
 
-    const loadData = async () => {
-        setLoading(true)
+    const loadData = async (showLoading = true) => {
+        if (showLoading) setLoading(true)
         const res = await getSurveyResponses()
         if (res.success && res.data) {
             setResponses(res.data)
         }
-        setLoading(false)
+        if (showLoading) setLoading(false)
     }
 
     const handleDelete = async (id: string) => {
@@ -38,7 +38,7 @@ export default function ResponsesPage() {
             setItemToDelete(null)
             
             // Background execution
-            deleteResponseItem(id).catch(() => loadData())
+            deleteResponseItem(id).catch(() => loadData(false))
         }
     }
 
@@ -54,7 +54,7 @@ export default function ResponsesPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold">Survey Responses</h1>
-                <button className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
+                <button className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 active:scale-95 transition-transform">
                     <Download className="h-4 w-4 mr-2" /> Export to CSV
                 </button>
             </div>
@@ -121,13 +121,13 @@ export default function ResponsesPage() {
                                         <td className="px-6 py-4 text-right flex items-center justify-end gap-3">
                                             <button
                                                 onClick={() => setSelectedResponse(res)}
-                                                className="text-blue-600 hover:text-blue-800 font-medium text-xs flex items-center"
+                                                className="text-blue-600 hover:text-blue-800 font-medium text-xs flex items-center active:scale-95 transition-transform"
                                             >
                                                 <Eye className="h-4 w-4 mr-1" /> View
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(res.id)}
-                                                className="text-red-500 hover:text-red-700 font-medium text-xs"
+                                                className="text-red-500 hover:text-red-700 font-medium text-xs active:scale-95 transition-transform"
                                                 title="Delete"
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -209,7 +209,7 @@ export default function ResponsesPage() {
                         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 flex justify-end">
                             <button
                                 onClick={() => setSelectedResponse(null)}
-                                className="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 font-medium text-sm"
+                                className="px-4 py-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 font-medium text-sm active:scale-95 transition-transform"
                             >
                                 Close Details
                             </button>

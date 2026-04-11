@@ -16,13 +16,13 @@ export default function QuestionsPage() {
         loadQuestions()
     }, [])
 
-    const loadQuestions = async () => {
-        setLoading(true)
+    const loadQuestions = async (showLoading = true) => {
+        if (showLoading) setLoading(true)
         const res = await getQuestions()
         if (res.success && res.data) {
             setQuestions(res.data)
         }
-        setLoading(false)
+        if (showLoading) setLoading(false)
     }
 
     const deleteQuestion = (id: string) => {
@@ -37,7 +37,7 @@ export default function QuestionsPage() {
             setItemToDelete(null)
             
             // Fire and forget
-            deleteQuestionItem(id).catch(() => loadQuestions())
+            deleteQuestionItem(id).catch(() => loadQuestions(false))
         }
     }
 
@@ -63,7 +63,7 @@ export default function QuestionsPage() {
             setTempData(null)
             
             // Background sync
-            saveQuestion(payload).catch(() => loadQuestions())
+            saveQuestion(payload).catch(() => loadQuestions(false))
         }
     }
 
@@ -105,7 +105,7 @@ export default function QuestionsPage() {
                 </div>
                 <button
                     onClick={addNew}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 active:scale-95 transition-transform"
                 >
                     <Plus className="h-4 w-4 mr-2" /> Add Question
                 </button>
@@ -207,14 +207,14 @@ export default function QuestionsPage() {
                                     <>
                                         <button
                                             onClick={saveEdit}
-                                            className="p-2 bg-green-100 text-green-600 hover:bg-green-200 rounded-lg dark:bg-green-900/30 dark:text-green-400"
+                                            className="p-2 bg-green-100 text-green-600 hover:bg-green-200 rounded-lg dark:bg-green-900/30 dark:text-green-400 active:scale-90 transition-transform"
                                             title="Save"
                                         >
                                             <Check className="h-4 w-4" />
                                         </button>
                                         <button
                                             onClick={cancelEdit}
-                                            className="p-2 bg-slate-200 text-slate-600 hover:bg-slate-300 rounded-lg dark:bg-slate-700 dark:text-slate-400"
+                                            className="p-2 bg-slate-200 text-slate-600 hover:bg-slate-300 rounded-lg dark:bg-slate-700 dark:text-slate-400 active:scale-90 transition-transform"
                                             title="Cancel"
                                         >
                                             <X className="h-4 w-4" />
@@ -224,14 +224,14 @@ export default function QuestionsPage() {
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => startEdit(question)}
-                                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg dark:hover:bg-slate-800"
+                                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg dark:hover:bg-slate-800 active:scale-90 transition-transform"
                                             title="Edit"
                                         >
                                             <Edit2 className="h-4 w-4" />
                                         </button>
                                         <button
                                             onClick={() => deleteQuestion(question.id)}
-                                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg dark:hover:bg-slate-800"
+                                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg dark:hover:bg-slate-800 active:scale-90 transition-transform"
                                             title="Delete"
                                         >
                                             <Trash2 className="h-4 w-4" />

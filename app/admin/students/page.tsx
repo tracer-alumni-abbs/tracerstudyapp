@@ -30,13 +30,13 @@ export default function StudentsPage() {
         loadStudents()
     }, [])
 
-    const loadStudents = async () => {
-        setLoading(true)
+    const loadStudents = async (showLoading = true) => {
+        if (showLoading) setLoading(true)
         const result = await getStudents()
         if (result.success && result.data) {
             setStudents(result.data)
         }
-        setLoading(false)
+        if (showLoading) setLoading(false)
     }
 
     const [searchTerm, setSearchTerm] = useState("")
@@ -83,7 +83,7 @@ export default function StudentsPage() {
             setItemToDelete(null)
             
             // Background execution
-            deleteStudent(id).catch(() => loadStudents())
+            deleteStudent(id).catch(() => loadStudents(false))
         }
     }
 
@@ -92,12 +92,12 @@ export default function StudentsPage() {
         if (editingId) {
             // Optimistic Update
             setStudents(prev => prev.map(s => s.id === editingId ? { ...s, ...formData } : s))
-            updateStudent(editingId, formData).catch(() => loadStudents())
+            updateStudent(editingId, formData).catch(() => loadStudents(false))
         } else {
             // Unsaved fake ID for exact optimistic insert
             const tempId = Date.now().toString()
             setStudents(prev => [{ id: tempId, ...formData, createdAt: new Date() }, ...prev])
-            createStudent(formData).then(() => loadStudents()).catch(() => loadStudents())
+            createStudent(formData).then(() => loadStudents(false)).catch(() => loadStudents(false))
         }
     }
 
@@ -166,7 +166,7 @@ export default function StudentsPage() {
         
         if (result.success) {
             showToast(`Successfully uploaded ${bulkDataPreview.length} students!`, 'success');
-            loadStudents();
+            loadStudents(false);
             setIsBulkUploadModalOpen(false);
             setBulkDataPreview([]);
         } else {
@@ -181,13 +181,13 @@ export default function StudentsPage() {
                 <div className="flex gap-2">
                     <button 
                         onClick={() => setIsBulkUploadModalOpen(true)}
-                        className="flex items-center px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 transition-colors"
+                        className="flex items-center px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 active:scale-95 transition-transform dark:bg-slate-900 dark:border-slate-800"
                     >
                         <Upload className="h-4 w-4 mr-2" /> Bulk Upload
                     </button>
                     <button
                         onClick={openAddModal}
-                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 active:scale-95 transition-transform"
                     >
                         <Plus className="h-4 w-4 mr-2" /> Add Student
                     </button>
@@ -249,14 +249,14 @@ export default function StudentsPage() {
                                         <td className="px-6 py-4 text-right">
                                             <button
                                                 onClick={() => openEditModal(student)}
-                                                className="text-slate-400 hover:text-blue-600 mr-3"
+                                                className="text-slate-400 hover:text-blue-600 mr-3 active:scale-95 transition-transform"
                                                 title="Edit"
                                             >
                                                 <Edit className="h-4 w-4" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(student.id, student.name)}
-                                                className="text-slate-400 hover:text-red-600"
+                                                className="text-slate-400 hover:text-red-600 active:scale-95 transition-transform"
                                                 title="Delete"
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -318,7 +318,7 @@ export default function StudentsPage() {
                             <button
                                 onClick={handleSave}
                                 disabled={!formData.name || !formData.phone || !formData.birthDate}
-                                className="w-full py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+                                className="w-full py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 active:scale-95 transition-transform disabled:opacity-50 disabled:active:scale-100"
                             >
                                 {editingId ? "Update Student" : "Save Student"}
                             </button>
@@ -360,7 +360,7 @@ export default function StudentsPage() {
                             </p>
                             <button 
                                 onClick={handleDownloadTemplate}
-                                className="flex items-center text-sm font-medium text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-white/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 px-3 py-1.5 rounded-lg border border-blue-200/50 dark:border-blue-800/50 transition-all shadow-sm"
+                                className="flex items-center text-sm font-medium text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-white/50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-900 px-3 py-1.5 rounded-lg border border-blue-200/50 dark:border-blue-800/50 transition-all shadow-sm active:scale-95"
                             >
                                 <DownloadCloud className="h-4 w-4 mr-2" /> Download Template
                             </button>
@@ -403,14 +403,14 @@ export default function StudentsPage() {
                                     <button 
                                         onClick={() => setBulkDataPreview([])}
                                         disabled={uploading}
-                                        className="px-4 py-2 font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                                        className="px-4 py-2 font-medium text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition-all active:scale-95"
                                     >
                                         Cancel
                                     </button>
                                     <button 
                                         onClick={handleConfirmBulkUpload}
                                         disabled={uploading}
-                                        className="flex items-center px-4 py-2 font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 transition-all shadow-sm"
+                                        className="flex items-center px-4 py-2 font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/20 disabled:opacity-50 transition-all shadow-sm active:scale-95"
                                     >
                                         {uploading ? (
                                             <><Loader2 className="animate-spin h-4 w-4 mr-2" /> Processing...</>
