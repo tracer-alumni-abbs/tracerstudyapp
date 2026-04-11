@@ -31,10 +31,13 @@ export default function QuestionsPage() {
 
     const confirmDelete = async () => {
         if (itemToDelete) {
-            setQuestions(questions.filter(q => q.id !== itemToDelete))
-            await deleteQuestionItem(itemToDelete)
+            const id = itemToDelete;
+            // Optimistic state
+            setQuestions(prev => prev.filter(q => q.id !== id))
             setItemToDelete(null)
-            loadQuestions()
+            
+            // Fire and forget
+            deleteQuestionItem(id).catch(() => loadQuestions())
         }
     }
 
@@ -52,19 +55,15 @@ export default function QuestionsPage() {
         if (editingId && tempData) {
             const currentItemIndex = questions.findIndex(q => q.id === editingId)
             const order = currentItemIndex >= 0 ? currentItemIndex : questions.length
+            const payload = { id: editingId, ...tempData, order }
             
             // Optimistic update
-            setQuestions(questions.map(q => q.id === editingId ? { ...q, ...tempData } : q))
-            
-            await saveQuestion({
-                id: editingId,
-                ...tempData,
-                order
-            })
-            
+            setQuestions(prev => prev.map(q => q.id === editingId ? { ...q, ...tempData } : q))
             setEditingId(null)
             setTempData(null)
-            loadQuestions()
+            
+            // Background sync
+            saveQuestion(payload).catch(() => loadQuestions())
         }
     }
 

@@ -77,22 +77,28 @@ export default function StudentsPage() {
 
     const confirmDelete = async () => {
         if (itemToDelete) {
-            await deleteStudent(itemToDelete.id)
+            const id = itemToDelete.id
+            // Optimistic update
+            setStudents(prev => prev.filter(s => s.id !== id))
             setItemToDelete(null)
-            loadStudents()
+            
+            // Background execution
+            deleteStudent(id).catch(() => loadStudents())
         }
     }
 
     const handleSave = async () => {
-        if (editingId) {
-            // Update Existing
-            await updateStudent(editingId, formData)
-        } else {
-            // Create New
-            await createStudent(formData)
-        }
-        loadStudents()
         setIsModalOpen(false)
+        if (editingId) {
+            // Optimistic Update
+            setStudents(prev => prev.map(s => s.id === editingId ? { ...s, ...formData } : s))
+            updateStudent(editingId, formData).catch(() => loadStudents())
+        } else {
+            // Unsaved fake ID for exact optimistic insert
+            const tempId = Date.now().toString()
+            setStudents(prev => [{ id: tempId, ...formData, createdAt: new Date() }, ...prev])
+            createStudent(formData).then(() => loadStudents()).catch(() => loadStudents())
+        }
     }
 
     const processCSV = async (file: File) => {

@@ -27,10 +27,16 @@ export default function AdminsPage() {
 
     const handleSave = async () => {
         if (!newAdmin.username) return
-        await createAdmin(newAdmin)
-        loadAdmins()
+        const fakeId = Date.now().toString()
+        const payload = { ...newAdmin }
+        
         setIsModalOpen(false)
         setNewAdmin({ username: "", password: "" })
+        
+        // Optimistic Update
+        setAdmins(prev => [{ id: fakeId, username: payload.username, createdAt: new Date() }, ...prev])
+        
+        createAdmin(payload).then(() => loadAdmins()).catch(() => loadAdmins())
     }
 
     const handleDelete = async (id: string, username: string) => {
@@ -39,9 +45,13 @@ export default function AdminsPage() {
 
     const confirmDelete = async () => {
         if (itemToDelete) {
-            await deleteAdmin(itemToDelete.id)
+            const id = itemToDelete.id
+            // Optimistic update
+            setAdmins(prev => prev.filter(a => a.id !== id))
             setItemToDelete(null)
-            loadAdmins()
+            
+            // Background execution
+            deleteAdmin(id).catch(() => loadAdmins())
         }
     }
 

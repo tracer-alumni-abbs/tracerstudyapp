@@ -32,9 +32,13 @@ export default function ResponsesPage() {
 
     const confirmDelete = async () => {
         if (itemToDelete) {
-            await deleteResponseItem(itemToDelete)
+            const id = itemToDelete
+            // Optimistic update
+            setResponses(prev => prev.filter(r => r.id !== id))
             setItemToDelete(null)
-            loadData()
+            
+            // Background execution
+            deleteResponseItem(id).catch(() => loadData())
         }
     }
 
