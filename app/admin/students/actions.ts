@@ -69,3 +69,25 @@ export async function deleteStudent(id: string) {
         return { success: false, error: "Failed to delete student" }
     }
 }
+
+export async function bulkCreateStudents(students: any[]) {
+    try {
+        const createData = students.map(s => ({
+            name: s.name,
+            batch: Number(s.batch),
+            phone: s.phone || "",
+            birthDate: new Date("2000-01-01")
+        }))
+
+        await prisma.student.createMany({
+            data: createData,
+            skipDuplicates: true
+        })
+
+        revalidatePath('/admin/students')
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to bulk create students:", error)
+        return { success: false, error: "Failed to import students" }
+    }
+}

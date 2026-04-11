@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import Cookies from "js-cookie"
-import { Users, FileText, Settings, LogOut, LayoutDashboard, Menu } from "lucide-react"
+import { Users, FileText, Settings, LogOut, LayoutDashboard, Menu, Shield } from "lucide-react"
 import { cn } from "@/lib/utils"
 // Import Language Provider hooks
 import { useLanguage } from "@/components/providers/LanguageProvider"
@@ -61,6 +61,7 @@ export default function AdminLayout({
                     <NavItem href="/admin/students" icon={Users} label={t.admin.sidebar.students} active={pathname === "/admin/students"} />
                     <NavItem href="/admin/responses" icon={FileText} label={t.admin.sidebar.responses} active={pathname === "/admin/responses"} />
                     <NavItem href="/admin/questions" icon={Settings} label={t.admin.sidebar.questions} active={pathname === "/admin/questions"} />
+                    <NavItem href="/admin/admins" icon={Shield} label="Admins" active={pathname === "/admin/admins"} />
                 </nav>
                 <div className="absolute bottom-4 left-0 right-0 p-4">
                     <button

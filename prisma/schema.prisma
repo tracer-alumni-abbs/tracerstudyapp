@@ -54,3 +54,10 @@ model SurveyResponse {
   answer     String
   createdAt  DateTime @default(now())
 }
+
+model Admin {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}

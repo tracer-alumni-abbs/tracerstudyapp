@@ -1,52 +1,39 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Download, Eye, X, User, Briefcase, GraduationCap } from "lucide-react"
-
-const MOCK_RESPONSES = [
-    {
-        id: "1",
-        name: "Alumni 2020 - 1",
-        batch: 2020,
-        date: "2024-03-15",
-        status: "Employed",
-        company: "Tech Corp",
-        position: "Software Engineer",
-        salary: "8,000,000",
-        relevant: 5
-    },
-    {
-        id: "3",
-        name: "Alumni 2021 - 1",
-        batch: 2021,
-        date: "2024-03-14",
-        status: "Continuing Study",
-        company: "-",
-        position: "-",
-        salary: "-",
-        relevant: null
-    },
-    {
-        id: "4",
-        name: "Alumni 2022 - 1",
-        batch: 2022,
-        date: "2024-03-16",
-        status: "Unemployed",
-        company: "-",
-        position: "-",
-        salary: "-",
-        relevant: null
-    },
-]
+import { useState, useEffect } from "react"
+import { Search, Download, Eye, X, User, Briefcase, GraduationCap, Trash2 } from "lucide-react"
+import { getSurveyResponses, deleteResponseItem } from "./actions"
 
 export default function ResponsesPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [selectedBatch, setSelectedBatch] = useState("All")
     const [selectedResponse, setSelectedResponse] = useState<any | null>(null)
+    const [responses, setResponses] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
 
-    const batches = ["All", ...Array.from(new Set(MOCK_RESPONSES.map(s => s.batch))).sort()]
+    useEffect(() => {
+        loadData()
+    }, [])
 
-    const filteredResponses = MOCK_RESPONSES.filter(r => {
+    const loadData = async () => {
+        setLoading(true)
+        const res = await getSurveyResponses()
+        if (res.success && res.data) {
+            setResponses(res.data)
+        }
+        setLoading(false)
+    }
+
+    const handleDelete = async (id: string) => {
+        if (confirm("Are you sure you want to delete this response?")) {
+            await deleteResponseItem(id)
+            loadData()
+        }
+    }
+
+    const batches = ["All", ...Array.from(new Set(responses.map(s => s.batch))).sort()]
+
+    const filteredResponses = responses.filter(r => {
         const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) || r.company.toLowerCase().includes(searchTerm)
         const matchesBatch = selectedBatch === "All" || r.batch.toString() === selectedBatch
         return matchesSearch && matchesBatch
@@ -96,7 +83,13 @@ export default function ResponsesPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredResponses.length === 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                                        Loading responses...
+                                    </td>
+                                </tr>
+                            ) : filteredResponses.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                                         No responses found.
@@ -114,12 +107,19 @@ export default function ResponsesPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">{res.company}</td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-6 py-4 text-right flex items-center justify-end gap-3">
                                             <button
                                                 onClick={() => setSelectedResponse(res)}
-                                                className="text-blue-600 hover:text-blue-800 font-medium text-xs flex items-center justify-end"
+                                                className="text-blue-600 hover:text-blue-800 font-medium text-xs flex items-center"
                                             >
-                                                <Eye className="h-3 w-3 mr-1" /> View
+                                                <Eye className="h-4 w-4 mr-1" /> View
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(res.id)}
+                                                className="text-red-500 hover:text-red-700 font-medium text-xs"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
                                             </button>
                                         </td>
                                     </tr>

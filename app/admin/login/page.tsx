@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Cookies from "js-cookie"
 import { Lock, Loader2 } from "lucide-react"
+import { loginAdminAction } from "./actions"
 
 export default function AdminLogin() {
     const router = useRouter()
@@ -12,22 +13,17 @@ export default function AdminLogin() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
         setError("")
 
-        // Mock Authentication
-        if (username === "admin" && password === "admin") {
-            Cookies.set("admin_session", "true", { expires: 1 }) // Expires in 1 day
-            setTimeout(() => {
-                router.push("/admin/dashboard")
-            }, 500)
+        const res = await loginAdminAction(username, password)
+        if (res.success) {
+            router.push("/admin/dashboard")
         } else {
-            setTimeout(() => {
-                setError("Invalid username or password")
-                setLoading(false)
-            }, 500)
+            setError(res.error || "Login failed")
+            setLoading(false)
         }
     }
 
@@ -80,10 +76,6 @@ export default function AdminLogin() {
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
                     </button>
                 </form>
-
-                <div className="text-center text-xs text-slate-400">
-                    Demo Credentials: admin / admin
-                </div>
             </div>
         </div>
     )
