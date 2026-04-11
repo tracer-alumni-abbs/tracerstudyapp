@@ -1,7 +1,8 @@
 import prisma from "@/lib/prisma"
 import DashboardChart from "./DashboardChart"
 import SurveyAnalytics from "./SurveyAnalytics"
-import { Users, BarChart3, Briefcase, Activity, Clock, Filter } from "lucide-react"
+import BatchSelector from "./BatchSelector"
+import { Users, BarChart3, Briefcase, Activity, Clock } from "lucide-react"
 
 function timeAgo(date: Date) {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -132,23 +133,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: {
                     <p className="text-sm text-slate-500 mt-1 dark:text-slate-400">Analytics and insights for {currentBatch === "All" ? "all batches" : `Batch ${currentBatch}`}.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                    <form className="flex items-center gap-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm relative z-10">
-                        <Filter className="w-4 h-4 text-slate-500" />
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Batch:</span>
-                        <select 
-                            name="batch" 
-                            defaultValue={currentBatch}
-                            className="bg-transparent text-sm border-none outline-none font-bold text-blue-600 dark:text-blue-400 cursor-pointer"
-                            onChange={(e) => e.target.form?.submit()}
-                        >
-                            <option value="All">All Batches</option>
-                            {data.batches.map((b: number) => (
-                                <option key={b} value={b.toString()}>{b}</option>
-                            ))}
-                        </select>
-                        {/* We use an invisible submit button for no-js fallback, but mostly rely on JS onChange -> submit() */}
-                        <noscript><button type="submit" className="text-xs ml-2 underline">Go</button></noscript>
-                    </form>
+                    <BatchSelector currentBatch={currentBatch} batches={data.batches} />
                     <div className="flex items-center gap-2 text-sm text-slate-500 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
                         <Clock className="w-4 h-4" />
                         <span>Real-time</span>
