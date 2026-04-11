@@ -5,6 +5,7 @@ import { Search, Plus, Upload, Trash2, Edit, X, Save, DownloadCloud, FileText, C
 
 import { getStudents, createStudent, updateStudent, deleteStudent, bulkCreateStudents } from "./actions"
 import { useEffect, useRef } from "react"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
 export default function StudentsPage() {
     const [students, setStudents] = useState<any[]>([])
@@ -45,6 +46,7 @@ export default function StudentsPage() {
     // State for Form
     const [editingId, setEditingId] = useState<string | null>(null)
     const [formData, setFormData] = useState({ name: "", batch: new Date().getFullYear(), phone: "", birthDate: "" })
+    const [itemToDelete, setItemToDelete] = useState<{id: string, name: string} | null>(null)
 
     const batches = ["All", ...Array.from(new Set(students.map(s => s.batch))).sort()]
 
@@ -70,8 +72,13 @@ export default function StudentsPage() {
     }
 
     const handleDelete = async (id: string, name: string) => {
-        if (confirm(`Are you sure you want to delete ${name}?`)) {
-            await deleteStudent(id)
+        setItemToDelete({ id, name })
+    }
+
+    const confirmDelete = async () => {
+        if (itemToDelete) {
+            await deleteStudent(itemToDelete.id)
+            setItemToDelete(null)
             loadStudents()
         }
     }
@@ -425,6 +432,14 @@ export default function StudentsPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal 
+                isOpen={!!itemToDelete}
+                title="Delete Student"
+                description={`Are you sure you want to delete ${itemToDelete?.name}? This action cannot be undone.`}
+                onConfirm={confirmDelete}
+                onCancel={() => setItemToDelete(null)}
+            />
         </div>
     )
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Search, Download, Eye, X, User, Briefcase, GraduationCap, Trash2 } from "lucide-react"
 import { getSurveyResponses, deleteResponseItem } from "./actions"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
 export default function ResponsesPage() {
     const [searchTerm, setSearchTerm] = useState("")
@@ -10,6 +11,7 @@ export default function ResponsesPage() {
     const [selectedResponse, setSelectedResponse] = useState<any | null>(null)
     const [responses, setResponses] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
     useEffect(() => {
         loadData()
@@ -25,8 +27,13 @@ export default function ResponsesPage() {
     }
 
     const handleDelete = async (id: string) => {
-        if (confirm("Are you sure you want to delete this response?")) {
-            await deleteResponseItem(id)
+        setItemToDelete(id)
+    }
+
+    const confirmDelete = async () => {
+        if (itemToDelete) {
+            await deleteResponseItem(itemToDelete)
+            setItemToDelete(null)
             loadData()
         }
     }
@@ -206,6 +213,14 @@ export default function ResponsesPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal 
+                isOpen={!!itemToDelete}
+                title="Delete Response"
+                description="Are you sure you want to delete this survey response? This action cannot be undone."
+                onConfirm={confirmDelete}
+                onCancel={() => setItemToDelete(null)}
+            />
         </div>
     )
 }

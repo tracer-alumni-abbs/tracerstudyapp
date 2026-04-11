@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react"
 import { getAdmins, createAdmin, deleteAdmin } from "./actions"
 import { Plus, Trash2, X, Shield, Lock } from "lucide-react"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
 export default function AdminsPage() {
     const [admins, setAdmins] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [newAdmin, setNewAdmin] = useState({ username: "", password: "" })
+    const [itemToDelete, setItemToDelete] = useState<{id: string, username: string} | null>(null)
 
     useEffect(() => {
         loadAdmins()
@@ -32,8 +34,13 @@ export default function AdminsPage() {
     }
 
     const handleDelete = async (id: string, username: string) => {
-        if (confirm(`Are you sure you want to delete admin ${username}?`)) {
-            await deleteAdmin(id)
+        setItemToDelete({ id, username })
+    }
+
+    const confirmDelete = async () => {
+        if (itemToDelete) {
+            await deleteAdmin(itemToDelete.id)
+            setItemToDelete(null)
             loadAdmins()
         }
     }
@@ -143,6 +150,14 @@ export default function AdminsPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmModal 
+                isOpen={!!itemToDelete}
+                title="Delete Admin"
+                description={`Are you sure you want to delete admin ${itemToDelete?.username}? This action cannot be undone.`}
+                onConfirm={confirmDelete}
+                onCancel={() => setItemToDelete(null)}
+            />
         </div>
     )
 }

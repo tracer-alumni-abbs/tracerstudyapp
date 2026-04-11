@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Plus, GripVertical, Trash2, Edit2, X, Save, Check, MinusCircle } from "lucide-react"
+import { ConfirmModal } from "@/components/ui/ConfirmModal"
 
 const INITIAL_QUESTIONS = [
     { id: "1", text: "What is your current employment status?", type: "Multiple Choice", options: ["Employed", "Self-employed", "Unemployed", "Continuing Study"] },
@@ -14,10 +15,16 @@ export default function QuestionsPage() {
     const [questions, setQuestions] = useState(INITIAL_QUESTIONS)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [tempData, setTempData] = useState<{ text: string, type: string, options: string[] } | null>(null)
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
     const deleteQuestion = (id: string) => {
-        if (confirm("Are you sure you want to delete this question?")) {
-            setQuestions(questions.filter(q => q.id !== id))
+        setItemToDelete(id)
+    }
+
+    const confirmDelete = () => {
+        if (itemToDelete) {
+            setQuestions(questions.filter(q => q.id !== itemToDelete))
+            setItemToDelete(null)
         }
     }
 
@@ -210,6 +217,14 @@ export default function QuestionsPage() {
                     ))}
                 </div>
             </div>
+
+            <ConfirmModal 
+                isOpen={!!itemToDelete}
+                title="Delete Question"
+                description="Are you sure you want to delete this survey question? This action cannot be undone."
+                onConfirm={confirmDelete}
+                onCancel={() => setItemToDelete(null)}
+            />
         </div>
     )
 }
