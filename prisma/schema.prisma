@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Student {
+  id        String   @id @default(uuid())
+  name      String
+  birthDate DateTime? // For identity validation
+  batch     Int      // Year of graduation
+  phone     String?
+  email     String?
+  jobHistory JobHistory[]
+  responses SurveyResponse[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model JobHistory {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id])
+  company     String
+  position    String
+  startDate   DateTime
+  endDate     DateTime? // Null means currently working
+  isCurrent   Boolean  @default(false)
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model SurveyQuestion {
+  id        String   @id @default(uuid())
+  question  String
+  type      String   // text, multiple_choice, rating
+  options   String?  // JSON string for options if multiple_choice
+  order     Int      @default(0)
+  responses SurveyResponse[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SurveyResponse {
+  id         String   @id @default(uuid())
+  studentId  String
+  student    Student  @relation(fields: [studentId], references: [id])
+  questionId String
+  question   SurveyQuestion @relation(fields: [questionId], references: [id])
+  answer     String
+  createdAt  DateTime @default(now())
+}
