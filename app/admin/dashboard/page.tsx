@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma"
 import DashboardChart from "./DashboardChart"
-import { Users, BarChart3, Briefcase, Activity, Clock } from "lucide-react"
+import SurveyAnalytics from "./SurveyAnalytics"
+import { Users, BarChart3, Briefcase, Activity, Clock, Filter } from "lucide-react"
 
 function timeAgo(date: Date) {
   const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -35,15 +36,30 @@ function SimpleCard({ title, value, sub, icon: Icon, colorClass, textColorClass 
     )
 }
 
-async function getDashboardData() {
-    const [totalAlumni, responses, jobHistories, recentActivity] = await Promise.all([
-        prisma.student.count(),
-        prisma.surveyResponse.findMany({ select: { studentId: true } }),
-        prisma.jobHistory.findMany({ where: { isCurrent: true } }),
+async function getDashboardData(batchInput?: string) {
+    const batchNum = batchInput && batchInput !== "All" ? parseInt(batchInput) : undefined;
+    const studentFilter = batchNum ? { batch: batchNum } : {};
+    const relationFilter = batchNum ? { student: { batch: batchNum } } : {};
+
+    const [totalAlumni, responses, jobHistories, recentActivity, allBatches, surveyQuestions] = await Promise.all([
+        prisma.student.count({ where: studentFilter }),
+        prisma.surveyResponse.findMany({ where: relationFilter, select: { studentId: true } }),
+        prisma.jobHistory.findMany({ where: { isCurrent: true, ...relationFilter } }),
         prisma.surveyResponse.findMany({
+            where: relationFilter,
             orderBy: { createdAt: 'desc' },
             take: 5,
             include: { student: true, question: true }
+        }),
+        prisma.student.findMany({ select: { batch: true }, distinct: ['batch'] }),
+        prisma.surveyQuestion.findMany({
+            include: {
+                responses: {
+                    where: relationFilter,
+                    include: { student: { select: { name: true } } }
+                }
+            },
+            orderBy: { order: 'asc' }
         })
     ])
 
@@ -82,8 +98,10 @@ async function getDashboardData() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const pendingReview = await prisma.surveyResponse.count({
-        where: { createdAt: { gte: sevenDaysAgo } }
+        where: { createdAt: { gte: sevenDaysAgo }, ...relationFilter }
     });
+
+    const batches = allBatches.map(b => b.batch).sort();
 
     return {
         totalAlumni,
@@ -91,25 +109,50 @@ async function getDashboardData() {
         employedRate,
         pendingReview,
         chartData,
-        recentActivity
+        recentActivity,
+        batches,
+        surveyQuestions
     }
 }
 
 export const revalidate = 0; // Ensure data is always fresh
 
-export default async function AdminDashboard() {
-    const data = await getDashboardData();
+export default async function AdminDashboard({ searchParams }: { searchParams: { batch?: string } }) {
+    // Next.js 15+ searchParams are async, so we must await it if using Next15, but Next 14 handles it synchronously.
+    // However, the best practice is to await it. If Next14, it's harmless if we await or access directly.
+    const sp = await searchParams;
+    const data = await getDashboardData(sp?.batch);
+    const currentBatch = sp?.batch || "All";
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent dark:from-white dark:to-slate-400">Dashboard Overview</h1>
-                    <p className="text-sm text-slate-500 mt-1 dark:text-slate-400">Welcome back, here's what's happening today.</p>
+                    <p className="text-sm text-slate-500 mt-1 dark:text-slate-400">Analytics and insights for {currentBatch === "All" ? "all batches" : `Batch ${currentBatch}`}.</p>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-slate-500 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl px-4 py-2 rounded-full border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
-                    <Clock className="w-4 h-4" />
-                    <span>Real-time data enabled</span>
+                <div className="flex flex-wrap items-center gap-3">
+                    <form className="flex items-center gap-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm relative z-10">
+                        <Filter className="w-4 h-4 text-slate-500" />
+                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Batch:</span>
+                        <select 
+                            name="batch" 
+                            defaultValue={currentBatch}
+                            className="bg-transparent text-sm border-none outline-none font-bold text-blue-600 dark:text-blue-400 cursor-pointer"
+                            onChange={(e) => e.target.form?.submit()}
+                        >
+                            <option value="All">All Batches</option>
+                            {data.batches.map((b: number) => (
+                                <option key={b} value={b.toString()}>{b}</option>
+                            ))}
+                        </select>
+                        {/* We use an invisible submit button for no-js fallback, but mostly rely on JS onChange -> submit() */}
+                        <noscript><button type="submit" className="text-xs ml-2 underline">Go</button></noscript>
+                    </form>
+                    <div className="flex items-center gap-2 text-sm text-slate-500 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl px-4 py-2 rounded-xl border border-slate-200/60 dark:border-slate-800/60 shadow-sm">
+                        <Clock className="w-4 h-4" />
+                        <span>Real-time</span>
+                    </div>
                 </div>
             </div>
 
@@ -190,6 +233,9 @@ export default async function AdminDashboard() {
                     )}
                 </div>
             </div>
+
+            {/* Google Forms-style Survey Summaries */}
+            <SurveyAnalytics questions={data.surveyQuestions} />
         </div>
     )
 }
