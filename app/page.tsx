@@ -23,7 +23,7 @@ const itemVariants = {
   visible: { 
     opacity: 1, 
     y: 0,
-    transition: { type: "spring", stiffness: 80, damping: 15 }
+    transition: { type: "spring" as const, stiffness: 80, damping: 15 }
   },
 }
 
@@ -34,7 +34,7 @@ const floatingVariants = {
     transition: {
       duration: 5,
       repeat: Infinity,
-      ease: "easeInOut"
+      ease: "easeInOut" as const
     }
   }
 }
@@ -46,7 +46,7 @@ const floatingVariantsReverse = {
     transition: {
       duration: 6,
       repeat: Infinity,
-      ease: "easeInOut",
+      ease: "easeInOut" as const,
       delay: 0.5
     }
   }

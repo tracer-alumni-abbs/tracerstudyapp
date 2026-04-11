@@ -2,7 +2,7 @@
 
 import { useState, use, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ArrowRight, Save, Plus, Trash2, CheckCircle2, Loader2, Search } from "lucide-react"
+import { ArrowLeft, ArrowRight, Save, Plus, Trash2, CheckCircle2, AlertCircle, Loader2, Search } from "lucide-react"
 
 import { verifyIdentity, getStudent } from "./actions"
 import { useLanguage } from "@/components/providers/LanguageProvider"
@@ -26,14 +26,22 @@ export default function SurveyForm({ params }: { params: Promise<{ studentId: st
     const [jobs, setJobs] = useState<any[]>([])
     const [responses, setResponses] = useState<Record<string, any>>({})
 
+    // Toast Notification State
+    const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null)
+
+    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+        setToast({ message, type })
+        setTimeout(() => setToast(null), 3000)
+    }
+
     useEffect(() => {
         const fetchStudent = async () => {
             const result = await getStudent(resolvedParams.studentId)
             if (result.success) {
                 setProfile(result.data)
             } else {
-                alert(result.message) // Or handle error gracefully
-                router.push('/search')
+                showToast(result.message || "An error occurred", 'error')
+                setTimeout(() => router.push('/search'), 2000)
             }
         }
         fetchStudent()
@@ -67,8 +75,8 @@ export default function SurveyForm({ params }: { params: Promise<{ studentId: st
         // Simulate Submit
         await new Promise(r => setTimeout(r, 1500))
         setLoading(false)
-        alert("Survey Submitted Successfully!")
-        router.push("/")
+        showToast("Survey Submitted Successfully!", 'success')
+        setTimeout(() => router.push("/"), 2000)
     }
 
     return (
@@ -319,6 +327,20 @@ export default function SurveyForm({ params }: { params: Promise<{ studentId: st
                     </div>
                 </div>
             </div>
+
+            {/* Toast Notifications */}
+            {toast && (
+                <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+                    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border ${
+                        toast.type === 'success' 
+                            ? 'bg-white dark:bg-slate-900 border-green-200 dark:border-green-900/50 text-green-700 dark:text-green-400' 
+                            : 'bg-white dark:bg-slate-900 border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400'
+                    }`}>
+                        {toast.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                        <p className="font-medium text-sm">{toast.message}</p>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
