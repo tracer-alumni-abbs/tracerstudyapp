@@ -7,5 +7,9 @@ export default async function QuestionsPage() {
     const res = await getQuestions()
     const initialData = res.success && res.data ? res.data : []
     
-    return <QuestionsClient initialData={initialData} />
+    return (
+        <div className="animate-in fade-in duration-300">
+            <QuestionsClient initialData={initialData} />
+        </div>
+    )
 }
