@@ -14,6 +14,9 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
     
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
+    // Direction of animation: 'forward' or 'back'
+    const [animKey, setAnimKey] = useState(0)
+    const [slideDir, setSlideDir] = useState<'forward' | 'back'>('forward')
 
     // Form State gets populated instantly without mounting wait
     const [profile, setProfile] = useState<any>(initialProfile)
@@ -32,6 +35,12 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
     const [birthDate, setBirthDate] = useState("")
     const [verificationError, setVerificationError] = useState("")
     const [verifying, setVerifying] = useState(false)
+
+    const goToStep = (nextStep: number, dir: 'forward' | 'back' = 'forward') => {
+        setSlideDir(dir)
+        setAnimKey(k => k + 1)
+        setStep(nextStep)
+    }
 
     const addJob = () => {
         setJobs([...jobs, {
@@ -66,6 +75,19 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 py-10 px-4 relative">
+            {/* slide-in CSS animation */}
+            <style>{`
+                @keyframes slide-in-forward {
+                    from { opacity: 0; transform: translateX(32px); }
+                    to   { opacity: 1; transform: translateX(0); }
+                }
+                @keyframes slide-in-back {
+                    from { opacity: 0; transform: translateX(-32px); }
+                    to   { opacity: 1; transform: translateX(0); }
+                }
+                .step-forward { animation: slide-in-forward 0.25s cubic-bezier(0.22,1,0.36,1) both; }
+                .step-back    { animation: slide-in-back    0.25s cubic-bezier(0.22,1,0.36,1) both; }
+            `}</style>
             <div className="absolute top-6 right-6 z-50">
                 <LanguageSwitcher />
             </div>
@@ -85,11 +107,11 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 p-8">
+                <div className="bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 p-8 overflow-hidden">
 
                     {/* Step 1: Profile */}
                     {step === 1 && (
-                        <div className="space-y-6">
+                        <div key={animKey} className={`space-y-6 ${slideDir === 'forward' ? 'step-forward' : 'step-back'}`}>
                             <h2 className="text-2xl font-bold">{t.form.step1.title}</h2>
                             <div className="grid gap-4 md:grid-cols-2">
                                 <div>
@@ -140,7 +162,7 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
 
                     {/* Step 2: Job History */}
                     {step === 2 && (
-                        <div className="space-y-6">
+                        <div key={animKey} className={`space-y-6 ${slideDir === 'forward' ? 'step-forward' : 'step-back'}`}>
                             <div className="flex justify-between items-center">
                                 <h2 className="text-2xl font-bold">{t.form.step2.title}</h2>
                                 <button onClick={addJob} className="flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium active:scale-95 transition-transform">
@@ -197,7 +219,7 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
 
                     {/* Step 3: Survey Questions */}
                     {step === 3 && (
-                        <div className="space-y-6">
+                        <div key={animKey} className={`space-y-6 ${slideDir === 'forward' ? 'step-forward' : 'step-back'}`}>
                             <h2 className="text-2xl font-bold">{t.form.step3.title}</h2>
                             <div className="space-y-6">
                                 <div className="space-y-2">
@@ -251,7 +273,7 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
                     <div className="mt-10 flex justify-between pt-6 border-t border-slate-100 dark:border-slate-800">
                         {step > 1 ? (
                             <button
-                                onClick={() => setStep(step - 1)}
+                                onClick={() => goToStep(step - 1, 'back')}
                                 className="flex items-center px-6 py-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-all active:scale-95"
                                 disabled={loading}
                             >
@@ -279,21 +301,21 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
                                         setVerifying(false)
 
                                         if (result.success) {
-                                            setStep(step + 1)
+                                            goToStep(step + 1, 'forward')
                                         } else {
                                             setVerificationError(result.message || t.validation.error)
                                         }
                                     } else {
-                                        setStep(step + 1)
+                                        goToStep(step + 1, 'forward')
                                     }
                                 }}
                                 disabled={verifying}
                                 className="flex items-center px-6 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-md active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
                                 {verifying ? (
-                                    <>{t.form.step1.verifying} <Loader2 className="h-4 w-4 ml-2 animate-spin" /></>
+                                    <><span className="mr-2">{t.form.step1.verifying}</span><Loader2 className="h-4 w-4 animate-spin" /></>
                                 ) : (
-                                    <>{t.form.step1.verifyBtn} <ArrowRight className="h-4 w-4 ml-2" /></>
+                                    <><span className="mr-2">{t.form.step1.verifyBtn}</span><ArrowRight className="h-4 w-4" /></>
                                 )}
                             </button>
                         ) : (

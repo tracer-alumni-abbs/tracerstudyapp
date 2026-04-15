@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import Cookies from "js-cookie"
-import { Users, FileText, Settings, LogOut, LayoutDashboard, Menu, Shield } from "lucide-react"
+import { Users, FileText, Settings, LogOut, LayoutDashboard, Menu, Shield, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 // Import Language Provider hooks
 import { useLanguage } from "@/components/providers/LanguageProvider"
@@ -20,6 +20,9 @@ export default function AdminLayout({
     const router = useRouter()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [authorized, setAuthorized] = useState(false)
+    const [isPending, startTransition] = useTransition()
+    // Track which nav item was just clicked for instant feedback
+    const [pendingHref, setPendingHref] = useState<string | null>(null)
 
     // Check Auth
     useEffect(() => {
@@ -35,6 +38,11 @@ export default function AdminLayout({
             setAuthorized(true)
         }
     }, [pathname, router])
+
+    // Clear pendingHref when navigation completes
+    useEffect(() => {
+        setPendingHref(null)
+    }, [pathname])
 
     if (!authorized) return null // or a loading spinner
 
@@ -57,11 +65,11 @@ export default function AdminLayout({
                     </button>
                 </div>
                 <nav className="p-4 space-y-2">
-                    <NavItem href="/admin/dashboard" icon={LayoutDashboard} label={t.admin.sidebar.dashboard} active={pathname === "/admin/dashboard"} />
-                    <NavItem href="/admin/students" icon={Users} label={t.admin.sidebar.students} active={pathname === "/admin/students"} />
-                    <NavItem href="/admin/responses" icon={FileText} label={t.admin.sidebar.responses} active={pathname === "/admin/responses"} />
-                    <NavItem href="/admin/questions" icon={Settings} label={t.admin.sidebar.questions} active={pathname === "/admin/questions"} />
-                    <NavItem href="/admin/admins" icon={Shield} label="Admins" active={pathname === "/admin/admins"} />
+                    <NavItem href="/admin/dashboard" icon={LayoutDashboard} label={t.admin.sidebar.dashboard} active={pathname === "/admin/dashboard"} pending={pendingHref === "/admin/dashboard"} onClick={() => { setPendingHref("/admin/dashboard"); startTransition(() => router.push("/admin/dashboard")); setIsSidebarOpen(false) }} />
+                    <NavItem href="/admin/students" icon={Users} label={t.admin.sidebar.students} active={pathname === "/admin/students"} pending={pendingHref === "/admin/students"} onClick={() => { setPendingHref("/admin/students"); startTransition(() => router.push("/admin/students")); setIsSidebarOpen(false) }} />
+                    <NavItem href="/admin/responses" icon={FileText} label={t.admin.sidebar.responses} active={pathname === "/admin/responses"} pending={pendingHref === "/admin/responses"} onClick={() => { setPendingHref("/admin/responses"); startTransition(() => router.push("/admin/responses")); setIsSidebarOpen(false) }} />
+                    <NavItem href="/admin/questions" icon={Settings} label={t.admin.sidebar.questions} active={pathname === "/admin/questions"} pending={pendingHref === "/admin/questions"} onClick={() => { setPendingHref("/admin/questions"); startTransition(() => router.push("/admin/questions")); setIsSidebarOpen(false) }} />
+                    <NavItem href="/admin/admins" icon={Shield} label="Admins" active={pathname === "/admin/admins"} pending={pendingHref === "/admin/admins"} onClick={() => { setPendingHref("/admin/admins"); startTransition(() => router.push("/admin/admins")); setIsSidebarOpen(false) }} />
                 </nav>
                 <div className="absolute bottom-4 left-0 right-0 p-4">
                     <button
@@ -84,7 +92,8 @@ export default function AdminLayout({
                         <Menu className="h-6 w-6" />
                     </button>
                     <span className="font-bold">{t.admin.sidebar.title}</span>
-                    <div className="ml-auto">
+                    <div className="ml-auto flex items-center gap-3">
+                        {isPending && <Loader2 className="h-4 w-4 animate-spin text-blue-400" />}
                         <LanguageSwitcher />
                     </div>
                 </header>
@@ -104,19 +113,24 @@ export default function AdminLayout({
     )
 }
 
-function NavItem({ href, icon: Icon, label, active }: { href: string, icon: any, label: string, active: boolean }) {
+function NavItem({ href, icon: Icon, label, active, pending, onClick }: { href: string, icon: any, label: string, active: boolean, pending?: boolean, onClick?: () => void }) {
+    const isHighlighted = active || pending
     return (
-        <Link
-            href={href}
+        <button
+            onClick={onClick}
             className={cn(
-                "flex items-center gap-3 px-4 py-2 rounded-lg transition-all active:scale-95",
-                active
+                "w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all active:scale-95",
+                isHighlighted
                     ? "bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-blue-400"
                     : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
             )}
         >
-            <Icon className="h-5 w-5" />
+            {pending && !active ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+                <Icon className="h-5 w-5" />
+            )}
             <span className="font-medium">{label}</span>
-        </Link>
+        </button>
     )
 }
