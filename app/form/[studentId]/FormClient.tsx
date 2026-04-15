@@ -66,8 +66,7 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
         setLoading(false)
 
         if (result.success) {
-            showToast("Survey Submitted Successfully!", 'success')
-            setTimeout(() => router.push("/"), 2000)
+            router.push(`/thank-you?name=${encodeURIComponent(profile.name || "")}`)
         } else {
             showToast(result.message || "An error occurred during submission", 'error')
         }
