@@ -68,7 +68,12 @@ export default function QuestionsClient({ initialData }: { initialData: any[] })
         if (editingId && tempData) {
             const currentItemIndex = questions.findIndex(q => q.id === editingId)
             const order = currentItemIndex >= 0 ? questions[currentItemIndex].order : questions.length
-            const payload = { id: editingId, ...tempData, order }
+            const payload = { 
+                id: editingId, 
+                ...tempData, 
+                order,
+                standardKey: tempData.standardKey === null ? undefined : tempData.standardKey
+            }
             
             setQuestions(prev => prev.map(q => q.id === editingId ? { ...q, ...tempData } : q))
             setEditingId(null)
