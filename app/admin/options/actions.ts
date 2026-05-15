@@ -94,36 +94,68 @@ export async function bulkImportData(rows: {univ: string, prodi: string, jenjang
             if (prodi) univMap.get(univ)!.push({name: prodi, level: row.jenjang?.trim() || ''})
         }
 
+        const univNames = Array.from(univMap.keys())
+        
+        // Find existing univs
+        const existingUnivs = await prisma.university.findMany({
+            where: { name: { in: univNames } },
+            select: { id: true, name: true }
+        })
+        const existingUnivNames = new Set(existingUnivs.map(u => u.name))
+
+        // Create missing univs
+        const missingUnivNames = univNames.filter(name => !existingUnivNames.has(name))
         let importedUnivs = 0
-        let importedProdis = 0
+        if (missingUnivNames.length > 0) {
+            await prisma.university.createMany({
+                data: missingUnivNames.map(name => ({ name })),
+                skipDuplicates: true
+            })
+            importedUnivs = missingUnivNames.length
+        }
 
+        // Fetch all univs again to get their IDs
+        const allUnivs = await prisma.university.findMany({
+            where: { name: { in: univNames } },
+            select: { id: true, name: true }
+        })
+        const univIdMap = new Map(allUnivs.map(u => [u.name, u.id]))
+
+        // Build program data
+        const programDataToInsert: any[] = []
         for (const [univName, programs] of Array.from(univMap.entries())) {
-            let university = await prisma.university.findUnique({ where: { name: univName } })
-            if (!university) {
-                university = await prisma.university.create({ data: { name: univName } })
-                importedUnivs++
+            const uid = univIdMap.get(univName)
+            if (!uid) continue
+            
+            // remove duplicate programs within the same university in the CSV
+            const uniqueProgs = new Map<string, any>()
+            for(const p of programs) {
+                uniqueProgs.set(p.name, p)
             }
 
-            for (const prog of programs) {
-                try {
-                    await prisma.programStudy.create({
-                        data: {
-                            universityId: university.id,
-                            name: prog.name,
-                            level: prog.level || null
-                        }
-                    })
-                    importedProdis++
-                } catch (e: any) {
-                    // Ignore duplicate
-                }
+            for (const prog of Array.from(uniqueProgs.values())) {
+                programDataToInsert.push({
+                    universityId: uid,
+                    name: prog.name,
+                    level: prog.level || null
+                })
             }
+        }
+
+        let importedProdis = 0
+        if (programDataToInsert.length > 0) {
+            // Prisma createMany skipDuplicates
+            const result = await prisma.programStudy.createMany({
+                data: programDataToInsert,
+                skipDuplicates: true
+            })
+            importedProdis = result.count
         }
         
         revalidatePath('/admin/options')
         return { success: true, importedUnivs, importedProdis }
     } catch (error) {
-        console.error(error)
+        console.error("Bulk import error:", error)
         return { success: false, error: "Failed to bulk import data" }
     }
 }

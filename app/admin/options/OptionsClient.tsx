@@ -277,8 +277,15 @@ export default function OptionsClient({ initialUniversities }: { initialUniversi
                     </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto max-h-[600px] p-2">
-                    {filtered.length === 0 ? (
+                <div className="flex-1 overflow-y-auto max-h-[600px] p-2 relative">
+                    {uploadingCSV && (
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm">
+                            <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
+                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Memproses & Menyimpan Data CSV...</p>
+                            <p className="text-xs text-slate-500 mt-1">Harap tunggu, proses ini memakan waktu beberapa saat.</p>
+                        </div>
+                    )}
+                    {filtered.length === 0 && !uploadingCSV ? (
                         <div className="text-center py-10 text-slate-400 text-sm">Tidak ada data ditemukan</div>
                     ) : (
                         filtered.map(univ => (
