@@ -211,7 +211,7 @@ export default function QuestionsClient({ initialData }: { initialData: any[] })
                                                 </select>
                                             </div>
 
-                                            {['Multiple Choice', 'Checkbox'].includes(tempData?.type || "") && (
+                                            {tempData && ['Multiple Choice', 'Checkbox'].includes(tempData.type) && (
                                                 <div className="space-y-3 p-4 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
                                                     <label className="block text-xs font-semibold text-slate-500 uppercase">Answer Options</label>
                                                     {tempData.optionsEn.map((optEn, idx) => (
