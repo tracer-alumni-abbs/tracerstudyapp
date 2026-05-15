@@ -59,32 +59,20 @@ export async function verifyIdentity(studentId: string, birthDateString: string)
     }
 }
 
-export async function submitSurvey(studentId: string, profile: any, jobs: any[], responses: Record<string, any>) {
+export async function submitSurvey(
+    studentId: string,
+    profile: any,
+    jobs: any[],
+    responses: Record<string, any>  // key = questionId, value = answer string
+) {
     try {
-        // 1. Ensure the core questions exist so foreign keys don't fail
-        await prisma.surveyQuestion.upsert({
-            where: { id: "q1" },
-            update: {},
-            create: { id: "q1", question: "What is your current employment status?", type: "Multiple Choice", options: JSON.stringify(["Employed", "Self-employed", "Unemployed", "Student"]), order: 1 }
-        })
-        await prisma.surveyQuestion.upsert({
-            where: { id: "q2" },
-            update: {},
-            create: { id: "q2", question: "How relevant was your study to your current job?", type: "Rating", order: 2 }
-        })
-        await prisma.surveyQuestion.upsert({
-            where: { id: "q3" },
-            update: {},
-            create: { id: "q3", question: "Any suggestions for curriculum improvement?", type: "Text Area", order: 3 }
-        })
-
-        // 2. Update Student Profile
+        // 1. Update Student Profile
         await prisma.student.update({
             where: { id: studentId },
-            data: { email: profile.email, phone: profile.phone }
+            data: { email: profile.email || null, phone: profile.phone || null }
         })
 
-        // 3. Update Job History (Clear existing and recreate to handle deletions implicitly)
+        // 2. Clear and re-create Job History
         await prisma.jobHistory.deleteMany({ where: { studentId } })
         if (jobs && jobs.length > 0) {
             await prisma.jobHistory.createMany({
@@ -98,16 +86,50 @@ export async function submitSurvey(studentId: string, profile: any, jobs: any[],
             })
         }
 
-        // 4. Update Survey Responses
+        // 3. Clear existing survey responses for this student
         await prisma.surveyResponse.deleteMany({ where: { studentId } })
-        
-        const responseData = []
-        if (responses['q1']) responseData.push({ studentId, questionId: "q1", answer: String(responses['q1']) })
-        if (responses['q2']) responseData.push({ studentId, questionId: "q2", answer: String(responses['q2']) })
-        if (responses['q3']) responseData.push({ studentId, questionId: "q3", answer: String(responses['q3']) })
 
-        if (responseData.length > 0) {
-            await prisma.surveyResponse.createMany({ data: responseData })
+        // 4. Build response rows — only include entries that have a real questionId in DB
+        //    responses object: { [questionId]: answerValue, university: "...", major: "..." }
+        const allQuestions = await prisma.surveyQuestion.findMany({ select: { id: true } })
+        const validIds = new Set(allQuestions.map(q => q.id))
+
+        const responseRows: { studentId: string; questionId: string; answer: string }[] = []
+
+        for (const [questionId, answer] of Object.entries(responses)) {
+            // Skip meta keys (university, major) and empty answers
+            if (!validIds.has(questionId)) continue
+            if (answer === null || answer === undefined || answer === "") continue
+            responseRows.push({ studentId, questionId, answer: String(answer) })
+        }
+
+        if (responseRows.length > 0) {
+            await prisma.surveyResponse.createMany({ data: responseRows })
+        }
+
+        // 5. Handle special meta responses (status, university, major, dll)
+        const metaFields = [
+            { key: 'status', id: 'meta_status', label: 'Status Saat Ini', order: 90 },
+            { key: 'university', id: 'meta_university', label: 'Perguruan Tinggi', order: 91 },
+            { key: 'major', id: 'meta_major', label: 'Program Studi', order: 92 },
+            { key: 'jalurMasuk', id: 'meta_jalurMasuk', label: 'Jalur Masuk', order: 93 },
+            { key: 'aktivitas', id: 'meta_aktivitas', label: 'Aktivitas Saat Ini', order: 94 },
+        ]
+
+        for (const field of metaFields) {
+            const answer = responses[field.key]
+            if (answer) {
+                await prisma.surveyQuestion.upsert({
+                    where: { id: field.id },
+                    create: { id: field.id, question: field.label, type: "Text", order: field.order },
+                    update: {}
+                })
+                await prisma.surveyResponse.upsert({
+                    where: { id: `${studentId}_${field.id}` },
+                    create: { id: `${studentId}_${field.id}`, studentId, questionId: field.id, answer: String(answer) },
+                    update: { answer: String(answer) }
+                })
+            }
         }
 
         return { success: true }
@@ -116,3 +138,4 @@ export async function submitSurvey(studentId: string, profile: any, jobs: any[],
         return { success: false, message: "Failed to submit survey data." }
     }
 }
+

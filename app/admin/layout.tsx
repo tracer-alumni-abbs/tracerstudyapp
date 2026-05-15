@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import Cookies from "js-cookie"
-import { Users, FileText, Settings, LogOut, LayoutDashboard, Menu, Shield, Loader2, X, ChevronRight } from "lucide-react"
+import { Users, FileText, Settings, LogOut, LayoutDashboard, Menu, Shield, Loader2, X, ChevronRight, BookOpen } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLanguage } from "@/components/providers/LanguageProvider"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
     { href: "/admin/responses", icon: FileText,         labelKey: "responses" as const },
     { href: "/admin/questions", icon: Settings,         labelKey: "questions" as const },
     { href: "/admin/admins",    icon: Shield,           label: "Admins" },
+    { href: "/admin/options",   icon: BookOpen,         label: "Referensi" },
 ] as const
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

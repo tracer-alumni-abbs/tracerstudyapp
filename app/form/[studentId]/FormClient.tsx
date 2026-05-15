@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
     ArrowLeft, ArrowRight, CheckCircle2, AlertCircle, Loader2,
@@ -11,8 +11,15 @@ import { verifyIdentity, submitSurvey } from "./actions"
 import { useLanguage } from "@/components/providers/LanguageProvider"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 
-// ─── Status options ────────────────────────────────────────────────────────────
-const STATUS_OPTIONS = [
+type Program = { id: string; name: string; level: string | null }
+type University = { id: string; name: string; programs: Program[] }
+type Question = { 
+    id: string; questionEn: string; questionId: string; type: string; 
+    optionsEn: string[]; optionsId: string[]; order: number; 
+    isStandard: boolean; standardKey: string | null 
+}
+
+const BASE_STATUS_OPTIONS = [
     {
         id: "working",
         icon: Briefcase,
@@ -65,9 +72,74 @@ const ICON_COLOR_MAP: Record<string, string> = {
     amber:   "text-amber-600 dark:text-amber-400",
 }
 
-export default function FormClient({ studentId, initialProfile }: { studentId: string, initialProfile: any }) {
+function SearchableSelect({
+    options,
+    value,
+    onChange,
+    placeholder,
+}: {
+    options: string[],
+    value: string,
+    onChange: (val: string) => void,
+    placeholder: string,
+}) {
+    const [query, setQuery] = useState(value)
+    const [open, setOpen] = useState(false)
+
+    useEffect(() => {
+        setQuery(value)
+    }, [value])
+
+    const filtered = query === "" ? options : options.filter(o => o.toLowerCase().includes(query.toLowerCase()))
+
+    return (
+        <div className="relative">
+            <input
+                value={query}
+                onChange={(e) => {
+                    setQuery(e.target.value)
+                    onChange(e.target.value)
+                    setOpen(true)
+                }}
+                onFocus={() => setOpen(true)}
+                onBlur={() => setTimeout(() => setOpen(false), 200)}
+                placeholder={placeholder}
+                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+            />
+            {open && filtered.length > 0 && (
+                <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-1 text-sm shadow-lg">
+                    {filtered.map(opt => (
+                        <li
+                            key={opt}
+                            onClick={() => {
+                                setQuery(opt)
+                                onChange(opt)
+                                setOpen(false)
+                            }}
+                            className="cursor-pointer px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-slate-700 dark:text-slate-300"
+                        >
+                            {opt}
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    )
+}
+
+export default function FormClient({ 
+    studentId, 
+    initialProfile,
+    questions = [],
+    universities = []
+}: { 
+    studentId: string, 
+    initialProfile: any,
+    questions?: Question[],
+    universities?: University[]
+}) {
     const { t, language } = useLanguage()
-    const lang = language   // alias for brevity throughout this file
+    const lang = language
     const router = useRouter()
 
     const [step, setStep] = useState(1)
@@ -78,14 +150,15 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
     const [profile, setProfile] = useState<any>(initialProfile)
 
     // Step 2 state
-    const [currentStatus, setCurrentStatus] = useState<string>("")  // working/entrepreneur/studying/not_working
-    const [jobs, setJobs] = useState<any[]>([])                     // for working/entrepreneur
-    const [university, setUniversity] = useState("")                 // for studying
-    const [major, setMajor] = useState("")                           // for studying
+    const [currentStatus, setCurrentStatus] = useState<string>("")
+    const [jobs, setJobs] = useState<any[]>([])
+    const [university, setUniversity] = useState("")
+    const [major, setMajor] = useState("")
+    const [jalurMasuk, setJalurMasuk] = useState("")
+    const [aktivitas, setAktivitas] = useState("")
 
     // Step 3 state (additional questions)
-    const [relevanceRating, setRelevanceRating] = useState<number>(0)
-    const [suggestions, setSuggestions] = useState("")
+    const [dynamicResponses, setDynamicResponses] = useState<Record<string, any>>({})
 
     // Verification state
     const [birthDate, setBirthDate] = useState("")
@@ -106,30 +179,40 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
         window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
-    // Job history helpers
     const addJob = () => setJobs(prev => [...prev, { id: Date.now(), company: "", position: "", startDate: "", isCurrent: false }])
     const removeJob = (id: number) => setJobs(prev => prev.filter(j => j.id !== id))
     const updateJob = (id: number, field: string, value: any) =>
         setJobs(prev => prev.map(j => j.id === id ? { ...j, [field]: value } : j))
 
+    // Handle dynamically populated Status options
+    const statusQ = questions.find(q => q.standardKey === 'current_status')
+    const STATUS_OPTIONS = BASE_STATUS_OPTIONS.map((opt, i) => {
+        if (statusQ && statusQ.optionsEn && statusQ.optionsId) {
+            return {
+                ...opt,
+                labelEn: statusQ.optionsEn[i] || opt.labelEn,
+                labelId: statusQ.optionsId[i] || opt.labelId,
+            }
+        }
+        return opt
+    })
+
     const handleSubmit = async () => {
         setLoading(true)
 
-        // Auto-derive status string for existing q1 field
         const statusLabel = STATUS_OPTIONS.find(s => s.id === currentStatus)
         const statusText = lang === 'id' ? statusLabel?.labelId : statusLabel?.labelEn
 
-        // Build responses object matching existing DB schema
         const responses: Record<string, any> = {
+            ...dynamicResponses,
             q1: statusText || currentStatus,
-            q2: relevanceRating || null,
-            q3: suggestions || null,
-            // extra enrichment
+            status: statusText || currentStatus,
             university: university || null,
             major: major || null,
+            jalurMasuk: jalurMasuk || null,
+            aktivitas: aktivitas || null,
         }
 
-        // Use jobs only for working/entrepreneur statuses
         const jobsToSubmit = (currentStatus === "working" || currentStatus === "entrepreneur") ? jobs : []
 
         const result = await submitSurvey(studentId, profile, jobsToSubmit, responses)
@@ -144,10 +227,21 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
 
     const isWorking = currentStatus === "working" || currentStatus === "entrepreneur"
     const isStudying = currentStatus === "studying"
+    const isNotWorking = currentStatus === "not_working"
 
     const STEP_LABELS = lang === 'id'
         ? ["Verifikasi", "Status Saat Ini", "Pertanyaan Tambahan"]
         : ["Verify", "Current Status", "Additional Questions"]
+
+    // Handle nested universities/majors
+    const univNames = universities.map(u => u.name)
+    const selectedUnivObj = universities.find(u => u.name.toLowerCase() === university.toLowerCase())
+    const majorNames = selectedUnivObj 
+        ? selectedUnivObj.programs.map(p => p.level ? `${p.name} (${p.level})` : p.name)
+        : [] // If no university matches, empty options so user can free-text
+
+    // Custom questions only
+    const additionalQuestions = questions.filter(q => !q.isStandard)
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-slate-900 py-10 px-4 relative">
@@ -268,7 +362,7 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
                         <div key={animKey} className={`p-8 space-y-6 ${slideDir === 'forward' ? 'step-forward' : 'step-back'}`}>
                             <div>
                                 <h2 className="text-2xl font-bold tracking-tight">
-                                    {lang === 'id' ? "Status Saat Ini" : "Current Status"}
+                                    {lang === 'id' ? (statusQ?.questionId || "Status Saat Ini") : (statusQ?.questionEn || "Current Status")}
                                 </h2>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                                     {lang === 'id'
@@ -287,7 +381,6 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
                                             key={opt.id}
                                             onClick={() => {
                                                 setCurrentStatus(opt.id)
-                                                // Clear irrelevant state when switching
                                                 if (opt.id !== "studying") { setUniversity(""); setMajor("") }
                                                 if (opt.id !== "working" && opt.id !== "entrepreneur") setJobs([])
                                             }}
@@ -326,23 +419,40 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
                                             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                                 {lang === 'id' ? "Perguruan Tinggi" : "University / College"}
                                             </label>
-                                            <input
+                                            <SearchableSelect
+                                                options={univNames}
                                                 value={university}
-                                                onChange={(e) => setUniversity(e.target.value)}
-                                                placeholder={lang === 'id' ? "Nama universitas/kampus" : "University name"}
-                                                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                                                onChange={(val) => { setUniversity(val); setMajor(""); }} // Reset major when univ changes
+                                                placeholder={lang === 'id' ? "Pilih atau ketik nama kampus" : "Select or type university"}
                                             />
                                         </div>
                                         <div className="space-y-1.5">
                                             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                                 {lang === 'id' ? "Program Studi" : "Major / Program"}
                                             </label>
-                                            <input
+                                            <SearchableSelect
+                                                options={majorNames}
                                                 value={major}
-                                                onChange={(e) => setMajor(e.target.value)}
-                                                placeholder={lang === 'id' ? "Jurusan / prodi" : "Your major"}
-                                                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                                                onChange={setMajor}
+                                                placeholder={lang === 'id' ? "Pilih atau ketik prodi" : "Select or type major"}
                                             />
+                                        </div>
+                                        <div className="space-y-1.5 sm:col-span-2">
+                                            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                                {lang === 'id' ? "Jalur Masuk" : "Admission Path"}
+                                            </label>
+                                            <select
+                                                value={jalurMasuk}
+                                                onChange={(e) => setJalurMasuk(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all"
+                                            >
+                                                <option value="">{lang === 'id' ? "-- Pilih Jalur Masuk --" : "-- Select Path --"}</option>
+                                                <option value="SNBP (Prestasi)">SNBP (Prestasi)</option>
+                                                <option value="SNBT (Tes)">SNBT (Tes)</option>
+                                                <option value="Mandiri">Mandiri</option>
+                                                <option value="Kedinasan">Kedinasan</option>
+                                                <option value="Lainnya">Lainnya</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
@@ -420,6 +530,29 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
                                     )}
                                 </div>
                             )}
+
+                            {/* Conditional: Not Working → Rencana Saat Ini */}
+                            {isNotWorking && (
+                                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <h3 className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                        <Clock className="h-4 w-4 text-amber-500" />
+                                        {lang === 'id' ? "Aktivitas / Rencana Saat Ini" : "Current Activity / Plan"}
+                                    </h3>
+                                    <div className="space-y-1.5">
+                                        <select
+                                            value={aktivitas}
+                                            onChange={(e) => setAktivitas(e.target.value)}
+                                            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all"
+                                        >
+                                            <option value="">{lang === 'id' ? "-- Pilih Aktivitas --" : "-- Select Activity --"}</option>
+                                            <option value="Sedang mempersiapkan tes masuk kampus (Gap Year)">Sedang mempersiapkan tes masuk kampus (Gap Year)</option>
+                                            <option value="Sedang mencari pekerjaan">Sedang mencari pekerjaan</option>
+                                            <option value="Mengikuti pelatihan / kursus">Mengikuti pelatihan / kursus</option>
+                                            <option value="Lainnya">Lainnya</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -437,59 +570,67 @@ export default function FormClient({ studentId, initialProfile }: { studentId: s
                                 </p>
                             </div>
 
-                            {/* Q2: Relevance rating */}
-                            <div className="space-y-3">
-                                <label className="block font-semibold text-slate-800 dark:text-slate-200">
-                                    {t.form.step3.questions.q2}
-                                </label>
-                                <p className="text-xs text-slate-400">
-                                    {lang === 'id' ? "1 = Tidak relevan, 5 = Sangat relevan" : "1 = Not relevant at all, 5 = Highly relevant"}
-                                </p>
-                                <div className="flex gap-3">
-                                    {[1, 2, 3, 4, 5].map((num) => (
-                                        <button
-                                            key={num}
-                                            onClick={() => setRelevanceRating(num)}
-                                            className={`relative h-12 w-12 rounded-xl font-bold text-sm transition-all duration-200 active:scale-95 ${
-                                                relevanceRating === num
-                                                    ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110'
-                                                    : relevanceRating > 0 && num <= relevanceRating
-                                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                            }`}
-                                        >
-                                            {num}
-                                        </button>
-                                    ))}
-                                </div>
-                                {relevanceRating > 0 && (
-                                    <p className="text-xs text-blue-600 dark:text-blue-400 font-medium animate-in fade-in duration-200">
-                                        {relevanceRating === 1 && (lang === 'id' ? "😕 Tidak relevan" : "😕 Not relevant")}
-                                        {relevanceRating === 2 && (lang === 'id' ? "😐 Kurang relevan" : "😐 Slightly relevant")}
-                                        {relevanceRating === 3 && (lang === 'id' ? "🙂 Cukup relevan" : "🙂 Moderately relevant")}
-                                        {relevanceRating === 4 && (lang === 'id' ? "😊 Relevan" : "😊 Relevant")}
-                                        {relevanceRating === 5 && (lang === 'id' ? "🎉 Sangat relevan!" : "🎉 Highly relevant!")}
-                                    </p>
-                                )}
-                            </div>
+                            {additionalQuestions.length === 0 && (
+                                <p className="text-center text-slate-400 text-sm py-4">No additional questions.</p>
+                            )}
 
-                            {/* Q3: Suggestions */}
-                            <div className="space-y-3">
-                                <label className="block font-semibold text-slate-800 dark:text-slate-200">
-                                    {t.form.step3.questions.q3}
-                                </label>
-                                <textarea
-                                    value={suggestions}
-                                    onChange={(e) => setSuggestions(e.target.value)}
-                                    placeholder={lang === 'id'
-                                        ? "Tulis saran, masukan, atau harapanmu untuk ABBS..."
-                                        : "Share your suggestions, feedback, or wishes for ABBS..."}
-                                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 min-h-[120px] text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
-                                />
-                                <p className="text-xs text-slate-400">
-                                    {lang === 'id' ? "Opsional — tapi sangat berharga bagi kami 🙏" : "Optional — but it means a lot to us 🙏"}
-                                </p>
-                            </div>
+                            {additionalQuestions.map((q) => (
+                                <div key={q.id} className="space-y-3">
+                                    <label className="block font-semibold text-slate-800 dark:text-slate-200">
+                                        {lang === 'id' ? (q.questionId || q.questionEn) : (q.questionEn || q.questionId)}
+                                    </label>
+                                    
+                                    {q.type === 'Rating' && (
+                                        <div className="flex gap-3 flex-wrap">
+                                            {[1, 2, 3, 4, 5].map((num) => {
+                                                const currentRating = dynamicResponses[q.id] || 0
+                                                return (
+                                                    <button
+                                                        key={num}
+                                                        onClick={() => setDynamicResponses(prev => ({ ...prev, [q.id]: num }))}
+                                                        className={`relative h-12 w-12 rounded-xl font-bold text-sm transition-all duration-200 active:scale-95 ${
+                                                            currentRating === num
+                                                                ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110'
+                                                                : currentRating > 0 && num <= currentRating
+                                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                        }`}
+                                                    >
+                                                        {num}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+
+                                    {(q.type === 'Text' || q.type === 'Text Area') && (
+                                        <textarea
+                                            value={dynamicResponses[q.id] || ""}
+                                            onChange={(e) => setDynamicResponses(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                            placeholder={lang === 'id' ? "Jawaban Anda..." : "Your answer..."}
+                                            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 min-h-[100px] text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
+                                        />
+                                    )}
+
+                                    {q.type === 'Multiple Choice' && q.optionsEn && (
+                                        <div className="space-y-2">
+                                            {(lang === 'id' ? q.optionsId : q.optionsEn).map((opt: string, idx: number) => (
+                                                <label key={idx} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors">
+                                                    <input
+                                                        type="radio"
+                                                        name={`q_${q.id}`}
+                                                        value={q.optionsEn[idx]} // Store the English value to keep DB consistent
+                                                        checked={dynamicResponses[q.id] === q.optionsEn[idx]}
+                                                        onChange={(e) => setDynamicResponses(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300"
+                                                    />
+                                                    <span className="text-sm text-slate-700 dark:text-slate-300">{opt}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     )}
 

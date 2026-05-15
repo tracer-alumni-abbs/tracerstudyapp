@@ -201,7 +201,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: {
                                             {activity.student.name}
                                         </p>
                                         <p className="text-xs text-slate-500 line-clamp-1 dark:text-slate-400">
-                                            Responded to: {activity.question.question}
+                                            Responded to: {activity.question.questionEn || activity.question.questionId}
                                         </p>
                                         <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
                                             Batch {activity.student.batch} • {timeAgo(activity.createdAt)}

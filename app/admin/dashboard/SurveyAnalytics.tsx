@@ -17,7 +17,7 @@ export default function SurveyAnalytics({ questions }: { questions: any[] }) {
                 {questions.map((q, idx) => (
                     <div key={q.id} className="rounded-2xl border border-slate-200/60 bg-white/60 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl dark:border-slate-800/60 dark:bg-slate-900/60 transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
                         <div className="mb-4">
-                            <h3 className="text-lg font-semibold tracking-tight break-words">{idx + 1}. {q.question}</h3>
+                            <h3 className="text-lg font-semibold tracking-tight break-words">{idx + 1}. {q.questionEn || q.questionId}</h3>
                             <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                                 {q.type === 'Multiple Choice' ? <PieChartIcon className="w-3 h-3" /> :
                                  q.type === 'Rating' ? <Star className="w-3 h-3" /> :

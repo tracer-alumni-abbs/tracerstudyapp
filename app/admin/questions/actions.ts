@@ -13,10 +13,14 @@ export async function getQuestions() {
             success: true, 
             data: data.map(q => ({
                 id: q.id,
-                text: q.question,
+                questionEn: q.questionEn,
+                questionId: q.questionId,
                 type: q.type,
-                options: q.options ? JSON.parse(q.options) : [],
-                order: q.order
+                optionsEn: q.optionsEn ? JSON.parse(q.optionsEn) : [],
+                optionsId: q.optionsId ? JSON.parse(q.optionsId) : [],
+                order: q.order,
+                isStandard: q.isStandard,
+                standardKey: q.standardKey
             }))
         }
     } catch (error: any) {
@@ -25,21 +29,27 @@ export async function getQuestions() {
     }
 }
 
-export async function saveQuestion(data: { id: string, text: string, type: string, options: string[], order?: number }) {
+export async function saveQuestion(data: { id: string, questionEn: string, questionId: string, type: string, optionsEn: string[], optionsId: string[], order?: number, isStandard?: boolean, standardKey?: string }) {
     try {
         await prisma.surveyQuestion.upsert({
             where: { id: data.id },
             update: {
-                question: data.text,
+                questionEn: data.questionEn,
+                questionId: data.questionId,
                 type: data.type,
-                options: data.type === 'Multiple Choice' ? JSON.stringify(data.options) : null,
+                optionsEn: data.type === 'Multiple Choice' ? JSON.stringify(data.optionsEn) : null,
+                optionsId: data.type === 'Multiple Choice' ? JSON.stringify(data.optionsId) : null,
             },
             create: {
                 id: data.id, 
-                question: data.text,
+                questionEn: data.questionEn,
+                questionId: data.questionId,
                 type: data.type,
-                options: data.type === 'Multiple Choice' ? JSON.stringify(data.options) : null,
-                order: data.order ?? 0
+                optionsEn: data.type === 'Multiple Choice' ? JSON.stringify(data.optionsEn) : null,
+                optionsId: data.type === 'Multiple Choice' ? JSON.stringify(data.optionsId) : null,
+                order: data.order ?? 0,
+                isStandard: data.isStandard || false,
+                standardKey: data.standardKey || null
             }
         });
         
@@ -53,6 +63,9 @@ export async function saveQuestion(data: { id: string, text: string, type: strin
 
 export async function deleteQuestionItem(id: string) {
     try {
+        const q = await prisma.surveyQuestion.findUnique({ where: { id } })
+        if (q && q.isStandard) return { success: false, message: "Cannot delete a standard question" }
+
         await prisma.surveyQuestion.delete({ where: { id } })
         revalidatePath('/admin/questions')
         return { success: true }
@@ -74,4 +87,43 @@ export async function updateOrder(orderedItems: { id: string, order: number }[])
      } catch (e) {
          return { success: false }
      }
+}
+
+export async function seedStandardQuestions() {
+    try {
+        const standardQuestions = [
+            {
+                standardKey: 'current_status',
+                questionEn: 'What is your current situation?',
+                questionId: 'Status Saat Ini',
+                type: 'Multiple Choice',
+                optionsEn: ['Working / Employed', 'Entrepreneur / Freelance', 'Continuing Study', 'Not Working Yet'],
+                optionsId: ['Bekerja / Karyawan', 'Wirausaha / Freelance', 'Lanjut Studi', 'Belum Bekerja'],
+                order: -100 // keep standard questions at the top
+            }
+        ]
+
+        for (const sq of standardQuestions) {
+            const existing = await prisma.surveyQuestion.findUnique({ where: { standardKey: sq.standardKey } })
+            if (!existing) {
+                await prisma.surveyQuestion.create({
+                    data: {
+                        questionEn: sq.questionEn,
+                        questionId: sq.questionId,
+                        type: sq.type,
+                        optionsEn: JSON.stringify(sq.optionsEn),
+                        optionsId: JSON.stringify(sq.optionsId),
+                        order: sq.order,
+                        isStandard: true,
+                        standardKey: sq.standardKey
+                    }
+                })
+            }
+        }
+        revalidatePath('/admin/questions')
+        return { success: true }
+    } catch (error) {
+        console.error("Failed to seed standard questions", error)
+        return { success: false }
+    }
 }

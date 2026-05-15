@@ -41,14 +41,18 @@ model JobHistory {
 }
 
 model SurveyQuestion {
-  id        String   @id @default(uuid())
-  question  String
-  type      String   // text, multiple_choice, rating
-  options   String?  // JSON string for options if multiple_choice
-  order     Int      @default(0)
-  responses SurveyResponse[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  questionEn  String   @default("")
+  questionId  String   @default("")
+  type        String   // text, multiple_choice, rating
+  optionsEn   String?  // JSON string for options if multiple_choice
+  optionsId   String?  // JSON string for options if multiple_choice
+  order       Int      @default(0)
+  isStandard  Boolean  @default(false)
+  standardKey String?  @unique
+  responses   SurveyResponse[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([order])
 }
@@ -72,4 +76,23 @@ model Admin {
   username  String   @unique
   password  String
   createdAt DateTime @default(now())
+}
+
+model University {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  programs  ProgramStudy[]
+  createdAt DateTime @default(now())
+}
+
+model ProgramStudy {
+  id           String   @id @default(uuid())
+  name         String
+  level        String?  // jenjang (e.g., S1, D3)
+  universityId String
+  university   University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@unique([name, level, universityId])
+  @@index([universityId])
 }
