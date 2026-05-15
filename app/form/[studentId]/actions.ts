@@ -121,7 +121,7 @@ export async function submitSurvey(
             if (answer) {
                 await prisma.surveyQuestion.upsert({
                     where: { id: field.id },
-                    create: { id: field.id, question: field.label, type: "Text", order: field.order },
+                    create: { id: field.id, questionEn: field.label, questionId: field.label, type: "Text", order: field.order },
                     update: {}
                 })
                 await prisma.surveyResponse.upsert({
