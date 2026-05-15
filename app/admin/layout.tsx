@@ -57,6 +57,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
         <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
 
+            {/* ─── Top Loading Progress Bar ─────────────── */}
+            {isPending && (
+                <div className="fixed top-0 left-0 right-0 z-[999] h-0.5 bg-slate-200 dark:bg-slate-800">
+                    <div
+                        className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-400 animate-pulse"
+                        style={{ width: '70%', transition: 'width 0.3s ease' }}
+                    />
+                </div>
+            )}
+
             {/* ─── Sidebar ─────────────────────────────── */}
             <aside className={cn(
                 "fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white dark:bg-slate-900",

@@ -14,7 +14,8 @@ export default function QuestionsClient({ initialData }: { initialData: any[] })
         questionEn: string, questionId: string, 
         type: string, 
         optionsEn: string[], optionsId: string[],
-        isStandard: boolean, standardKey: string | null
+        isStandard: boolean, standardKey: string | null,
+        isRequired: boolean
     }
     const [tempData, setTempData] = useState<TempData | null>(null)
     const [itemToDelete, setItemToDelete] = useState<string | null>(null)
@@ -55,7 +56,8 @@ export default function QuestionsClient({ initialData }: { initialData: any[] })
             optionsEn: question.optionsEn || [], 
             optionsId: question.optionsId || [],
             isStandard: question.isStandard || false,
-            standardKey: question.standardKey || null
+            standardKey: question.standardKey || null,
+            isRequired: question.isRequired || false
         })
     }
 
@@ -87,7 +89,7 @@ export default function QuestionsClient({ initialData }: { initialData: any[] })
         const newId = Date.now().toString()
         const newQuestion = { 
             id: newId, questionEn: "New Question", questionId: "Pertanyaan Baru", 
-            type: "Text", optionsEn: [], optionsId: [], isStandard: false, standardKey: null, order: questions.length 
+            type: "Text", optionsEn: [], optionsId: [], isStandard: false, standardKey: null, order: questions.length, isRequired: false 
         }
         setQuestions([...questions, newQuestion])
         startEdit(newQuestion)
@@ -198,17 +200,18 @@ export default function QuestionsClient({ initialData }: { initialData: any[] })
                                                 <select
                                                     value={tempData?.type || ""}
                                                     disabled={question.isStandard}
-                                                    onChange={(e) => setTempData({ ...tempData!, type: e.target.value, optionsEn: e.target.value === "Multiple Choice" ? ["Opt 1", "Opt 2"] : [], optionsId: e.target.value === "Multiple Choice" ? ["Opsi 1", "Opsi 2"] : [] })}
+                                                    onChange={(e) => setTempData({ ...tempData!, type: e.target.value, optionsEn: ['Multiple Choice', 'Checkbox'].includes(e.target.value) ? ["Opt 1", "Opt 2"] : [], optionsId: ['Multiple Choice', 'Checkbox'].includes(e.target.value) ? ["Opsi 1", "Opsi 2"] : [] })}
                                                     className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none text-sm dark:bg-slate-800 dark:border-slate-700 disabled:opacity-50 disabled:bg-slate-100 dark:disabled:bg-slate-900"
                                                 >
                                                     <option>Text</option>
                                                     <option>Multiple Choice</option>
+                                                    <option>Checkbox</option>
                                                     <option>Rating</option>
                                                     <option>Text Area</option>
                                                 </select>
                                             </div>
 
-                                            {tempData?.type === "Multiple Choice" && (
+                                            {['Multiple Choice', 'Checkbox'].includes(tempData?.type || "") && (
                                                 <div className="space-y-3 p-4 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
                                                     <label className="block text-xs font-semibold text-slate-500 uppercase">Answer Options</label>
                                                     {tempData.optionsEn.map((optEn, idx) => (
@@ -237,12 +240,28 @@ export default function QuestionsClient({ initialData }: { initialData: any[] })
                                                     )}
                                                 </div>
                                             )}
+                                            
+                                            <div className="flex items-center gap-2 mt-4 bg-slate-50 dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 w-max">
+                                                <input 
+                                                    type="checkbox" 
+                                                    id={`required-${question.id}`}
+                                                    checked={tempData?.isRequired || false}
+                                                    onChange={(e) => setTempData({ ...tempData!, isRequired: e.target.checked })}
+                                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:bg-slate-800 dark:border-slate-600 dark:ring-offset-slate-900"
+                                                />
+                                                <label htmlFor={`required-${question.id}`} className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                                                    Wajib Diisi (Required)
+                                                </label>
+                                            </div>
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
                                             <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="font-semibold text-slate-800 dark:text-slate-200">{question.questionEn || "Unnamed"}</span>
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                                        {question.questionEn || "Unnamed"}
+                                                        {question.isRequired && <span className="text-red-500 ml-1" title="Required">*</span>}
+                                                    </span>
                                                     <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-semibold dark:bg-blue-900/30 dark:text-blue-400 border border-blue-100 dark:border-blue-900">
                                                         {question.type}
                                                     </span>
@@ -255,7 +274,7 @@ export default function QuestionsClient({ initialData }: { initialData: any[] })
                                                 <span className="text-sm text-slate-500 dark:text-slate-400">{question.questionId}</span>
                                             </div>
 
-                                            {question.type === "Multiple Choice" && question.optionsEn && (
+                                            {['Multiple Choice', 'Checkbox'].includes(question.type) && question.optionsEn && (
                                                 <div className="flex flex-col gap-2 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                                                     {question.optionsEn.map((optEn: string, i: number) => (
                                                         <div key={i} className="flex gap-4 text-xs">

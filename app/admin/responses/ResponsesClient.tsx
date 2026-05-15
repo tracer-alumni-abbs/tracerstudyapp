@@ -86,7 +86,7 @@ export default function ResponsesClient({ initialData }: { initialData: any[] })
                                 <th className="px-6 py-3">Student</th>
                                 <th className="px-6 py-3">Batch</th>
                                 <th className="px-6 py-3">Submission Date</th>
-                                <th className="px-6 py-3">Employment Status</th>
+                                <th className="px-6 py-3">Status Saat Ini</th>
                                 <th className="px-6 py-3">Current Company</th>
                                 <th className="px-6 py-3 text-right">Actions</th>
                             </tr>
@@ -158,50 +158,71 @@ export default function ResponsesClient({ initialData }: { initialData: any[] })
                             </button>
                         </div>
 
-                        <div className="p-6 overflow-y-auto space-y-8">
-                            {/* Employment Status Section */}
-                            <div className="space-y-4">
-                                <h3 className="flex items-center text-sm font-semibold text-slate-500 uppercase tracking-wider">
-                                    <Briefcase className="h-4 w-4 mr-2" /> Employment info
-                                </h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                                        <label className="text-xs text-slate-500">Current Status</label>
-                                        <p className="font-medium text-lg">{selectedResponse.status}</p>
-                                    </div>
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                                        <label className="text-xs text-slate-500">Company</label>
-                                        <p className="font-medium text-lg">{selectedResponse.company}</p>
-                                    </div>
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                                        <label className="text-xs text-slate-500">Position</label>
-                                        <p className="font-medium text-lg">{selectedResponse.position}</p>
-                                    </div>
-                                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                                        <label className="text-xs text-slate-500">Est. Salary</label>
-                                        <p className="font-medium text-lg">{selectedResponse.salary}</p>
-                                    </div>
+                        <div className="p-6 overflow-y-auto space-y-6">
+                            {/* Profile Meta Section */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="col-span-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                                    <label className="text-xs font-semibold text-blue-500 uppercase block mb-0.5">Status Saat Ini</label>
+                                    <p className="font-semibold text-slate-800 dark:text-slate-200">{selectedResponse.status || "-"}</p>
                                 </div>
+                                {selectedResponse.university && (
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                        <label className="text-xs font-semibold text-slate-500 block mb-0.5">Perguruan Tinggi</label>
+                                        <p className="font-medium text-slate-800 dark:text-slate-200">{selectedResponse.university}</p>
+                                    </div>
+                                )}
+                                {selectedResponse.major && (
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                        <label className="text-xs font-semibold text-slate-500 block mb-0.5">Program Studi</label>
+                                        <p className="font-medium text-slate-800 dark:text-slate-200">{selectedResponse.major}</p>
+                                    </div>
+                                )}
+                                {selectedResponse.jalurMasuk && (
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                        <label className="text-xs font-semibold text-slate-500 block mb-0.5">Jalur Masuk</label>
+                                        <p className="font-medium text-slate-800 dark:text-slate-200">{selectedResponse.jalurMasuk}</p>
+                                    </div>
+                                )}
+                                {selectedResponse.aktivitas && (
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                        <label className="text-xs font-semibold text-slate-500 block mb-0.5">Aktivitas Saat Ini</label>
+                                        <p className="font-medium text-slate-800 dark:text-slate-200">{selectedResponse.aktivitas}</p>
+                                    </div>
+                                )}
+                                {selectedResponse.company && selectedResponse.company !== '-' && (
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                        <label className="text-xs font-semibold text-slate-500 block mb-0.5">Perusahaan</label>
+                                        <p className="font-medium text-slate-800 dark:text-slate-200">{selectedResponse.company}</p>
+                                    </div>
+                                )}
+                                {selectedResponse.position && selectedResponse.position !== '-' && (
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                        <label className="text-xs font-semibold text-slate-500 block mb-0.5">Posisi</label>
+                                        <p className="font-medium text-slate-800 dark:text-slate-200">{selectedResponse.position}</p>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Curriculum Relevance Section */}
-                            <div className="space-y-4">
-                                <h3 className="flex items-center text-sm font-semibold text-slate-500 uppercase tracking-wider">
-                                    <GraduationCap className="h-4 w-4 mr-2" /> Academic Impact
-                                </h3>
-                                <div className="p-4 border border-slate-200 dark:border-slate-800 rounded-lg flex items-center justify-between">
-                                    <span>Study Relevance Rating</span>
-                                    <div className="flex gap-1">
-                                        {[1, 2, 3, 4, 5].map(star => (
-                                            <div
-                                                key={star}
-                                                className={`h-3 w-3 rounded-full ${(selectedResponse.relevant || 0) >= star ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700"
-                                                    }`}
-                                            />
+                            {/* Survey Answers Section */}
+                            {selectedResponse.answers && selectedResponse.answers.length > 0 && (
+                                <div className="space-y-3">
+                                    <h3 className="flex items-center text-sm font-semibold text-slate-500 uppercase tracking-wider">
+                                        <Briefcase className="h-4 w-4 mr-2" /> Jawaban Survei
+                                    </h3>
+                                    <div className="grid gap-3">
+                                        {selectedResponse.answers.map((ans: any, idx: number) => (
+                                            <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                                <label className="text-xs font-semibold text-slate-500 block mb-1">
+                                                    {ans.questionId || ans.questionEn}
+                                                </label>
+                                                <p className="font-medium text-[15px] text-slate-800 dark:text-slate-200">
+                                                    {ans.answer}
+                                                </p>
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 flex justify-end">

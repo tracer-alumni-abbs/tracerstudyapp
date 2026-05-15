@@ -66,10 +66,18 @@ export async function submitSurvey(
     responses: Record<string, any>  // key = questionId, value = answer string
 ) {
     try {
-        // 1. Update Student Profile
+        // 1. Update Student Profile & survey metadata
         await prisma.student.update({
             where: { id: studentId },
-            data: { email: profile.email || null, phone: profile.phone || null }
+            data: { 
+                email: profile.email || null, 
+                phone: profile.phone || null,
+                surveyStatus: responses.status || null,
+                surveyUniversity: responses.university || null,
+                surveyMajor: responses.major || null,
+                surveyJalurMasuk: responses.jalurMasuk || null,
+                surveyAktivitas: responses.aktivitas || null,
+            }
         })
 
         // 2. Clear and re-create Job History
@@ -97,7 +105,9 @@ export async function submitSurvey(
         const responseRows: { studentId: string; questionId: string; answer: string }[] = []
 
         for (const [questionId, answer] of Object.entries(responses)) {
-            // Skip meta keys (university, major) and empty answers
+            // Skip only meta/profile keys that are NOT valid question IDs
+            const skipKeys = new Set(['status', 'university', 'major', 'jalurMasuk', 'aktivitas'])
+            if (skipKeys.has(questionId)) continue
             if (!validIds.has(questionId)) continue
             if (answer === null || answer === undefined || answer === "") continue
             responseRows.push({ studentId, questionId, answer: String(answer) })
@@ -105,31 +115,6 @@ export async function submitSurvey(
 
         if (responseRows.length > 0) {
             await prisma.surveyResponse.createMany({ data: responseRows })
-        }
-
-        // 5. Handle special meta responses (status, university, major, dll)
-        const metaFields = [
-            { key: 'status', id: 'meta_status', label: 'Status Saat Ini', order: 90 },
-            { key: 'university', id: 'meta_university', label: 'Perguruan Tinggi', order: 91 },
-            { key: 'major', id: 'meta_major', label: 'Program Studi', order: 92 },
-            { key: 'jalurMasuk', id: 'meta_jalurMasuk', label: 'Jalur Masuk', order: 93 },
-            { key: 'aktivitas', id: 'meta_aktivitas', label: 'Aktivitas Saat Ini', order: 94 },
-        ]
-
-        for (const field of metaFields) {
-            const answer = responses[field.key]
-            if (answer) {
-                await prisma.surveyQuestion.upsert({
-                    where: { id: field.id },
-                    create: { id: field.id, questionEn: field.label, questionId: field.label, type: "Text", order: field.order },
-                    update: {}
-                })
-                await prisma.surveyResponse.upsert({
-                    where: { id: `${studentId}_${field.id}` },
-                    create: { id: `${studentId}_${field.id}`, studentId, questionId: field.id, answer: String(answer) },
-                    update: { answer: String(answer) }
-                })
-            }
         }
 
         return { success: true }

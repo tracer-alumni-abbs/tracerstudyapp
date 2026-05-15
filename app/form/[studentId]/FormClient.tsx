@@ -16,7 +16,8 @@ type University = { id: string; name: string; programs: Program[] }
 type Question = { 
     id: string; questionEn: string; questionId: string; type: string; 
     optionsEn: string[]; optionsId: string[]; order: number; 
-    isStandard: boolean; standardKey: string | null 
+    isStandard: boolean; standardKey: string | null;
+    isRequired: boolean;
 }
 
 const BASE_STATUS_OPTIONS = [
@@ -205,13 +206,15 @@ export default function FormClient({
 
         const responses: Record<string, any> = {
             ...dynamicResponses,
-            q1: statusText || currentStatus,
             status: statusText || currentStatus,
             university: university || null,
             major: major || null,
             jalurMasuk: jalurMasuk || null,
             aktivitas: aktivitas || null,
         }
+
+        // Also save status to the standard question if it exists
+        if (statusQ) responses[statusQ.id] = statusText || currentStatus
 
         const jobsToSubmit = (currentStatus === "working" || currentStatus === "entrepreneur") ? jobs : []
 
@@ -412,7 +415,6 @@ export default function FormClient({
                                     <h3 className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                                         <GraduationCap className="h-4 w-4 text-emerald-500" />
                                         {lang === 'id' ? "Info Perguruan Tinggi" : "University Information"}
-                                        <span className="text-xs text-slate-400 font-normal">({lang === 'id' ? 'opsional' : 'optional'})</span>
                                     </h3>
                                     <div className="grid gap-3 sm:grid-cols-2">
                                         <div className="space-y-1.5">
@@ -465,7 +467,6 @@ export default function FormClient({
                                         <h3 className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                                             <Briefcase className="h-4 w-4 text-blue-500" />
                                             {lang === 'id' ? "Riwayat Pekerjaan" : "Job History"}
-                                            <span className="text-xs text-slate-400 font-normal">({lang === 'id' ? 'opsional' : 'optional'})</span>
                                         </h3>
                                         <button
                                             onClick={addJob}
@@ -574,52 +575,68 @@ export default function FormClient({
                                 <p className="text-center text-slate-400 text-sm py-4">No additional questions.</p>
                             )}
 
-                            {additionalQuestions.map((q) => (
-                                <div key={q.id} className="space-y-3">
-                                    <label className="block font-semibold text-slate-800 dark:text-slate-200">
-                                        {lang === 'id' ? (q.questionId || q.questionEn) : (q.questionEn || q.questionId)}
-                                    </label>
+                            {additionalQuestions.map((q, qIdx) => (
+                                <div key={q.id} className="space-y-3 p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+                                    <div className="flex items-start gap-3">
+                                        <span className="flex-shrink-0 h-6 w-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-bold flex items-center justify-center mt-0.5">
+                                            {qIdx + 1}
+                                        </span>
+                                        <label className="block font-semibold text-slate-800 dark:text-slate-200 leading-snug">
+                                            {lang === 'id' ? (q.questionId || q.questionEn) : (q.questionEn || q.questionId)}
+                                            {q.isRequired && <span className="text-red-500 ml-1">*</span>}
+                                        </label>
+                                    </div>
                                     
                                     {q.type === 'Rating' && (
-                                        <div className="flex gap-3 flex-wrap">
-                                            {[1, 2, 3, 4, 5].map((num) => {
-                                                const currentRating = dynamicResponses[q.id] || 0
-                                                return (
-                                                    <button
-                                                        key={num}
-                                                        onClick={() => setDynamicResponses(prev => ({ ...prev, [q.id]: num }))}
-                                                        className={`relative h-12 w-12 rounded-xl font-bold text-sm transition-all duration-200 active:scale-95 ${
-                                                            currentRating === num
-                                                                ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110'
-                                                                : currentRating > 0 && num <= currentRating
-                                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                                        }`}
-                                                    >
-                                                        {num}
-                                                    </button>
-                                                )
-                                            })}
+                                        <div className="space-y-3 pl-9">
+                                            <div className="flex gap-2 flex-wrap">
+                                                {[1, 2, 3, 4, 5].map((num) => {
+                                                    const currentRating = dynamicResponses[q.id] || 0
+                                                    const isSelected = currentRating === num
+                                                    const isFilled = currentRating > 0 && num <= currentRating
+                                                    return (
+                                                        <button
+                                                            key={num}
+                                                            onClick={() => setDynamicResponses(prev => ({ ...prev, [q.id]: num }))}
+                                                            className={`relative h-12 w-12 rounded-xl font-bold text-sm transition-all duration-200 active:scale-95 ${
+                                                                isSelected
+                                                                    ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110'
+                                                                    : isFilled
+                                                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                                            }`}
+                                                        >
+                                                            {num}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                            <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500">
+                                                <span>{lang === 'id' ? '1 = Sangat Tidak Siap / Sangat Kurang' : '1 = Very Poor / Not Ready at All'}</span>
+                                                <span>{lang === 'id' ? '5 = Sangat Siap / Sangat Baik' : '5 = Excellent / Very Ready'}</span>
+                                            </div>
                                         </div>
                                     )}
 
                                     {(q.type === 'Text' || q.type === 'Text Area') && (
-                                        <textarea
-                                            value={dynamicResponses[q.id] || ""}
-                                            onChange={(e) => setDynamicResponses(prev => ({ ...prev, [q.id]: e.target.value }))}
-                                            placeholder={lang === 'id' ? "Jawaban Anda..." : "Your answer..."}
-                                            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 min-h-[100px] text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
-                                        />
+                                        <div className="pl-9">
+                                            <textarea
+                                                value={dynamicResponses[q.id] || ""}
+                                                onChange={(e) => setDynamicResponses(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                                placeholder={lang === 'id' ? "Jawaban Anda..." : "Your answer..."}
+                                                className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 min-h-[100px] text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none"
+                                            />
+                                        </div>
                                     )}
 
                                     {q.type === 'Multiple Choice' && q.optionsEn && (
-                                        <div className="space-y-2">
+                                        <div className="space-y-2 pl-9">
                                             {(lang === 'id' ? q.optionsId : q.optionsEn).map((opt: string, idx: number) => (
-                                                <label key={idx} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors">
+                                                <label key={idx} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800/80 cursor-pointer transition-colors bg-white dark:bg-slate-800/50">
                                                     <input
                                                         type="radio"
                                                         name={`q_${q.id}`}
-                                                        value={q.optionsEn[idx]} // Store the English value to keep DB consistent
+                                                        value={q.optionsEn[idx]}
                                                         checked={dynamicResponses[q.id] === q.optionsEn[idx]}
                                                         onChange={(e) => setDynamicResponses(prev => ({ ...prev, [q.id]: e.target.value }))}
                                                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300"
@@ -627,6 +644,39 @@ export default function FormClient({
                                                     <span className="text-sm text-slate-700 dark:text-slate-300">{opt}</span>
                                                 </label>
                                             ))}
+                                        </div>
+                                    )}
+
+                                    {q.type === 'Checkbox' && q.optionsEn && (
+                                        <div className="space-y-2 pl-9">
+                                            {(lang === 'id' ? q.optionsId : q.optionsEn).map((opt: string, idx: number) => {
+                                                const currentAnswers = dynamicResponses[q.id] ? dynamicResponses[q.id].split(', ') : []
+                                                const isChecked = currentAnswers.includes(q.optionsEn[idx])
+                                                return (
+                                                    <label key={idx} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800/80 cursor-pointer transition-colors bg-white dark:bg-slate-800/50">
+                                                        <input
+                                                            type="checkbox"
+                                                            value={q.optionsEn[idx]}
+                                                            checked={isChecked}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value
+                                                                let newAnswers = [...currentAnswers]
+                                                                if (e.target.checked) {
+                                                                    newAnswers.push(val)
+                                                                } else {
+                                                                    newAnswers = newAnswers.filter(a => a !== val)
+                                                                }
+                                                                setDynamicResponses(prev => ({ ...prev, [q.id]: newAnswers.join(', ') }))
+                                                            }}
+                                                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600 dark:bg-slate-800 dark:border-slate-600"
+                                                        />
+                                                        <span className="text-sm text-slate-700 dark:text-slate-300">{opt}</span>
+                                                    </label>
+                                                )
+                                            })}
+                                            {q.isRequired && (
+                                                <p className="text-xs text-slate-400 pl-1">{lang === 'id' ? 'Pilih minimal satu opsi' : 'Select at least one option'}</p>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -672,6 +722,33 @@ export default function FormClient({
                                             showToast(lang === 'id' ? "Pilih status kamu terlebih dahulu" : "Please select your current status", 'error')
                                             return
                                         }
+
+                                        // Step 2 Validation
+                                        if (isStudying) {
+                                            if (!university || !major || !jalurMasuk) {
+                                                showToast(lang === 'id' ? "Mohon lengkapi info perguruan tinggi, program studi, dan jalur masuk." : "Please complete university, major, and admission path info.", "error")
+                                                return
+                                            }
+                                        }
+                                        if (isWorking) {
+                                            if (jobs.length === 0) {
+                                                showToast(lang === 'id' ? "Mohon tambahkan minimal satu riwayat pekerjaan." : "Please add at least one job history.", "error")
+                                                return
+                                            }
+                                            for (const job of jobs) {
+                                                if (!job.company || !job.position || !job.startDate) {
+                                                    showToast(lang === 'id' ? "Mohon lengkapi nama perusahaan, jabatan, dan tanggal mulai pada riwayat pekerjaan." : "Please complete company, position, and start date for all jobs.", "error")
+                                                    return
+                                                }
+                                            }
+                                        }
+                                        if (isNotWorking) {
+                                            if (!aktivitas) {
+                                                showToast(lang === 'id' ? "Mohon pilih aktivitas saat ini." : "Please select current activity.", "error")
+                                                return
+                                            }
+                                        }
+
                                         goToStep(3, 'forward')
                                     }
                                 }}
@@ -686,7 +763,26 @@ export default function FormClient({
                             </button>
                         ) : (
                             <button
-                                onClick={handleSubmit}
+                                onClick={() => {
+                                    // Validate required additional questions
+                                    const missingRequired = additionalQuestions.filter(q => {
+                                        if (!q.isRequired) return false;
+                                        const answer = dynamicResponses[q.id];
+                                        if (q.type === 'Rating') return !answer || answer === 0;
+                                        if (q.type === 'Checkbox') {
+                                            // Must have at least one option selected
+                                            return !answer || String(answer).trim() === "";
+                                        }
+                                        return !answer || String(answer).trim() === "";
+                                    });
+                                    if (missingRequired.length > 0) {
+                                        const firstMissing = missingRequired[0];
+                                        const qLabel = lang === 'id' ? (firstMissing.questionId || firstMissing.questionEn) : (firstMissing.questionEn || firstMissing.questionId);
+                                        showToast(lang === 'id' ? `Mohon isi: "${qLabel}"` : `Please answer: "${qLabel}"`, "error");
+                                        return;
+                                    }
+                                    handleSubmit();
+                                }}
                                 disabled={loading}
                                 className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-500 hover:to-teal-500 shadow-sm shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
                             >

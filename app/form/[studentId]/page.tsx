@@ -37,7 +37,8 @@ export default async function SurveyFormPage({ params }: { params: Promise<{ stu
                 optionsId: q.optionsId ? JSON.parse(q.optionsId) : [],
                 order: q.order,
                 isStandard: q.isStandard,
-                standardKey: q.standardKey
+                standardKey: q.standardKey,
+                isRequired: q.isRequired
             }))}
             universities={universities.map(u => ({
                 id: u.id,

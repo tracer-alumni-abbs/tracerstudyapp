@@ -20,7 +20,8 @@ export async function getQuestions() {
                 optionsId: q.optionsId ? JSON.parse(q.optionsId) : [],
                 order: q.order,
                 isStandard: q.isStandard,
-                standardKey: q.standardKey
+                standardKey: q.standardKey,
+                isRequired: q.isRequired
             }))
         }
     } catch (error: any) {
@@ -29,7 +30,7 @@ export async function getQuestions() {
     }
 }
 
-export async function saveQuestion(data: { id: string, questionEn: string, questionId: string, type: string, optionsEn: string[], optionsId: string[], order?: number, isStandard?: boolean, standardKey?: string }) {
+export async function saveQuestion(data: { id: string, questionEn: string, questionId: string, type: string, optionsEn: string[], optionsId: string[], order?: number, isStandard?: boolean, standardKey?: string, isRequired?: boolean }) {
     try {
         await prisma.surveyQuestion.upsert({
             where: { id: data.id },
@@ -37,19 +38,21 @@ export async function saveQuestion(data: { id: string, questionEn: string, quest
                 questionEn: data.questionEn,
                 questionId: data.questionId,
                 type: data.type,
-                optionsEn: data.type === 'Multiple Choice' ? JSON.stringify(data.optionsEn) : null,
-                optionsId: data.type === 'Multiple Choice' ? JSON.stringify(data.optionsId) : null,
+                optionsEn: ['Multiple Choice', 'Checkbox'].includes(data.type) ? JSON.stringify(data.optionsEn) : null,
+                optionsId: ['Multiple Choice', 'Checkbox'].includes(data.type) ? JSON.stringify(data.optionsId) : null,
+                isRequired: data.isRequired || false
             },
             create: {
                 id: data.id, 
                 questionEn: data.questionEn,
                 questionId: data.questionId,
                 type: data.type,
-                optionsEn: data.type === 'Multiple Choice' ? JSON.stringify(data.optionsEn) : null,
-                optionsId: data.type === 'Multiple Choice' ? JSON.stringify(data.optionsId) : null,
+                optionsEn: ['Multiple Choice', 'Checkbox'].includes(data.type) ? JSON.stringify(data.optionsEn) : null,
+                optionsId: ['Multiple Choice', 'Checkbox'].includes(data.type) ? JSON.stringify(data.optionsId) : null,
                 order: data.order ?? 0,
                 isStandard: data.isStandard || false,
-                standardKey: data.standardKey || null
+                standardKey: data.standardKey || null,
+                isRequired: data.isRequired || false
             }
         });
         
@@ -115,7 +118,8 @@ export async function seedStandardQuestions() {
                         optionsId: JSON.stringify(sq.optionsId),
                         order: sq.order,
                         isStandard: true,
-                        standardKey: sq.standardKey
+                        standardKey: sq.standardKey,
+                        isRequired: true
                     }
                 })
             }

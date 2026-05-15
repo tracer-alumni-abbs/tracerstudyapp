@@ -15,6 +15,11 @@ model Student {
   batch     Int      // Year of graduation
   phone     String?
   email     String?
+  surveyStatus      String?  // e.g. Lanjut Studi, Bekerja
+  surveyUniversity  String?  // Universitas tujuan
+  surveyMajor       String?  // Program studi
+  surveyJalurMasuk  String?  // Jalur masuk
+  surveyAktivitas   String?  // Aktivitas saat ini
   jobHistory JobHistory[]
   responses SurveyResponse[]
   createdAt DateTime @default(now())
@@ -50,6 +55,7 @@ model SurveyQuestion {
   order       Int      @default(0)
   isStandard  Boolean  @default(false)
   standardKey String?  @unique
+  isRequired  Boolean  @default(false)
   responses   SurveyResponse[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -46,11 +46,13 @@ async function getDashboardData(batchInput?: string) {
         prisma.student.count({ where: studentFilter }),
         prisma.surveyResponse.findMany({ where: relationFilter, select: { studentId: true } }),
         prisma.jobHistory.findMany({ where: { isCurrent: true, ...relationFilter } }),
-        prisma.surveyResponse.findMany({
-            where: relationFilter,
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-            include: { student: true, question: true }
+        prisma.student.findMany({
+            where: {
+                ...studentFilter,
+                responses: { some: {} }
+            },
+            orderBy: { updatedAt: 'desc' },
+            take: 5
         }),
         prisma.student.findMany({ select: { batch: true }, distinct: ['batch'] }),
         prisma.surveyQuestion.findMany({
@@ -194,17 +196,17 @@ export default async function AdminDashboard({ searchParams }: { searchParams: {
                             {data.recentActivity.map((activity, i) => (
                                 <div key={activity.id} className="group flex items-start gap-4 transition-all">
                                     <div className="relative mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 bg-gradient-to-br from-blue-100 to-blue-50 text-sm font-bold text-blue-600 shadow-sm ring-1 ring-blue-100 dark:from-blue-900/40 dark:to-blue-900/20 dark:text-blue-400 dark:ring-blue-900">
-                                        {activity.student.name.charAt(0).toUpperCase()}
+                                        {activity.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div className="grid flex-1 gap-1">
                                         <p className="text-sm font-medium text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                                            {activity.student.name}
+                                            {activity.name}
                                         </p>
                                         <p className="text-xs text-slate-500 line-clamp-1 dark:text-slate-400">
-                                            Responded to: {activity.question.questionEn || activity.question.questionId}
+                                            Submitted Survey
                                         </p>
                                         <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                                            Batch {activity.student.batch} • {timeAgo(activity.createdAt)}
+                                            Batch {activity.batch} • {timeAgo(activity.updatedAt)}
                                         </p>
                                     </div>
                                 </div>
