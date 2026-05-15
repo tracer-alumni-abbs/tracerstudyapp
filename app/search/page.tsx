@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Search, User, ChevronRight, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getStudentsByBatch } from "./actions"
+import { getStudentsByBatch, getBatches } from "./actions"
 import { useLanguage } from "@/components/providers/LanguageProvider"
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 
@@ -17,8 +17,27 @@ export default function SearchPage() {
     const [selectedBatch, setSelectedBatch] = useState<number | null>(null)
     const [loading, setLoading] = useState(false)
     const [students, setStudents] = useState<any[]>([])
+    const [batches, setBatches] = useState<number[]>([])
+    const [loadingBatches, setLoadingBatches] = useState(true)
 
-    const batches = [2020, 2021, 2022, 2023, 2024]
+    useEffect(() => {
+        const fetchBatches = async () => {
+            try {
+                const result = await getBatches()
+                if (result.success && result.data) {
+                    setBatches(result.data)
+                } else {
+                    setBatches([])
+                }
+            } catch (error) {
+                console.error(error)
+                setBatches([])
+            } finally {
+                setLoadingBatches(false)
+            }
+        }
+        fetchBatches()
+    }, [])
 
     const handleSelectBatch = async (batch: number) => {
         setLoading(true)
@@ -60,7 +79,11 @@ export default function SearchPage() {
                     <h1 className="text-2xl font-bold text-center mb-2">{step === "batch" ? t.search.step1 : t.search.step2}</h1>
                     <p className="text-slate-500 text-center mb-8">{step === 'batch' ? t.search.selectBatch : t.search.selectName}</p>
 
-                    {loading ? (
+                    {loadingBatches && step === "batch" ? (
+                        <div className="flex justify-center py-8 text-slate-500">
+                            <Loader2 className="h-6 w-6 animate-spin mr-2" /> {t.search.loading || "Loading..."}
+                        </div>
+                    ) : loading ? (
                         <div className="flex justify-center py-8 text-slate-500">
                             <Loader2 className="h-6 w-6 animate-spin mr-2" /> {t.search.loading}
                         </div>
