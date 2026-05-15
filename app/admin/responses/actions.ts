@@ -38,7 +38,7 @@ export async function getSurveyResponses() {
                 status: status,
                 company: currentJob?.company || "-",
                 position: currentJob?.position || "-",
-                question: r.question.question,
+                question: r.question.questionEn || r.question.questionId,
                 answer: r.answer,
                 salary: "-", // Not tracked currently
                 relevant: Math.floor(Math.random() * 3) + 3 // mock relevance logic
